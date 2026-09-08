@@ -1,0 +1,66 @@
+{
+  "classTitle": "三年忠班 班級聯絡簿",
+  "announcement": "歡迎各位家長與同學！請每日查閱聯絡簿，養成準時繳交各項作業與回條的好習慣。",
+  "records": [
+    {
+      "id": "rec-20260908-1",
+      "date": "2026-09-08",
+      "category": "homework",
+      "subject": "國語",
+      "title": "生字練習簿甲本 P.15 ~ P.17",
+      "details": "請注意部首與筆畫工整，完成後請家長在右下角簽章。",
+      "dueDate": "2026-09-09",
+      "priority": "normal"
+    },
+    {
+      "id": "rec-20260908-2",
+      "date": "2026-09-08",
+      "category": "homework",
+      "subject": "數學",
+      "title": "數學習作第 22、23 頁",
+      "details": "包含兩位數乘法應用題，請務必列出直式與答。",
+      "dueDate": "2026-09-09",
+      "priority": "normal"
+    },
+    {
+      "id": "rec-20260908-3",
+      "date": "2026-09-08",
+      "category": "exam",
+      "subject": "英語",
+      "title": "Unit 2 核心單字與日常對話小考",
+      "details": "範圍涵蓋課本 P.24~P.28，明日第二節課舉行測驗。",
+      "dueDate": "2026-09-09",
+      "priority": "high"
+    },
+    {
+      "id": "rec-20260908-4",
+      "date": "2026-09-08",
+      "category": "submission",
+      "subject": "總務處",
+      "title": "秋季戶外教學活動家長同意回條",
+      "details": "無論同意參加與否皆須簽名繳回，費用於確認成行後統一發放繳費單。",
+      "dueDate": "2026-09-11",
+      "priority": "high"
+    },
+    {
+      "id": "rec-20260908-5",
+      "date": "2026-09-08",
+      "category": "reminder",
+      "subject": "學務處",
+      "title": "明日全天體育週活動，請穿著整齊體育服裝與運動鞋",
+      "details": "請攜帶個人水壺（至少 600ml）、替換毛巾與小雨傘。",
+      "dueDate": "",
+      "priority": "normal"
+    },
+    {
+      "id": "rec-20260909-1",
+      "date": "2026-09-09",
+      "category": "homework",
+      "subject": "社會",
+      "title": "社會習作第一單元隨堂練習",
+      "details": "複習台灣地形與家鄉生活環境。",
+      "dueDate": "2026-09-10",
+      "priority": "normal"
+    }
+  ]
+}

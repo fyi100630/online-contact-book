@@ -206,6 +206,14 @@ const GitHubSync = (function () {
 
   let cachedSha = null;
 
+  // 處理 Token 授權標頭（自動去除首尾空白、自動相容 Bearer 格式）
+  function getAuthHeader(token) {
+    if (!token) return '';
+    let clean = String(token).trim();
+    clean = clean.replace(/^Bearer\s+/i, '').replace(/^token\s+/i, '').trim();
+    return `Bearer ${clean}`;
+  }
+
   return {
     DEFAULT_EDITOR_PASSWORD,
     DEFAULT_SUPER_ADMIN_PASSWORD,
@@ -226,7 +234,7 @@ const GitHubSync = (function () {
       if (config.owner) params.set('owner', config.owner);
       if (config.repo) params.set('repo', config.repo);
       if (config.branch && config.branch !== 'main') params.set('branch', config.branch);
-      if (config.token) params.set('token', config.token);
+      if (config.token) params.set('token', config.token.trim());
 
       return `${base}#admin&${params.toString()}`;
     },
@@ -236,7 +244,7 @@ const GitHubSync = (function () {
       const base = window.location.origin + window.location.pathname;
       const pwd = config.editorPassword || DEFAULT_EDITOR_PASSWORD;
       if (config.token) {
-        return `${base}#${pwd}&token=${encodeURIComponent(config.token)}`;
+        return `${base}#${pwd}&token=${encodeURIComponent(config.token.trim())}`;
       }
       return `${base}#${pwd}`;
     },
@@ -246,7 +254,7 @@ const GitHubSync = (function () {
       const base = window.location.origin + window.location.pathname;
       const pwd = config.superAdminPassword || DEFAULT_SUPER_ADMIN_PASSWORD;
       if (config.token) {
-        return `${base}#${pwd}&token=${encodeURIComponent(config.token)}`;
+        return `${base}#${pwd}&token=${encodeURIComponent(config.token.trim())}`;
       }
       return `${base}#${pwd}`;
     },
@@ -259,7 +267,7 @@ const GitHubSync = (function () {
           const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${DATA_PATH}?ref=${config.branch || 'main'}&t=${Date.now()}`;
           const res = await fetch(apiUrl, {
             headers: {
-              Authorization: `Bearer ${config.token}`,
+              Authorization: getAuthHeader(config.token),
               Accept: 'application/vnd.github.v3+json',
             },
           });
@@ -313,7 +321,7 @@ const GitHubSync = (function () {
         try {
           const getRes = await fetch(`${apiUrl}?ref=${branch}&t=${Date.now()}`, {
             headers: {
-              Authorization: `Bearer ${config.token}`,
+              Authorization: getAuthHeader(config.token),
               Accept: 'application/vnd.github.v3+json',
             },
           });
@@ -343,7 +351,7 @@ const GitHubSync = (function () {
       const putRes = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
-          Authorization: `Bearer ${config.token}`,
+          Authorization: getAuthHeader(config.token),
           Accept: 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
@@ -352,10 +360,16 @@ const GitHubSync = (function () {
 
       if (!putRes.ok) {
         const errJson = await putRes.json().catch(() => ({}));
+        if (putRes.status === 401) {
+          throw new Error('GitHub 金鑰無效（Bad credentials）。請確認填入的是完整的 GitHub Personal Access Token（格式為 ghp_... 或 github_pat_...），請勿輸入 GitHub 登入密碼！');
+        }
+        if (putRes.status === 404) {
+          throw new Error(`找不到儲存庫或分支（HTTP 404）。請確認儲存庫「${config.owner}/${config.repo}」已建立且檔案 data/records.json 已存在。`);
+        }
         if (putRes.status === 409) {
           // SHA 衝突時清除快取，提示使用者重新整理
           cachedSha = null;
-          throw new Error('儲存衝突（SHA 衝突）：可能有其他地方進行了變更，請重新整理後再試一次。');
+          throw new Error('儲存衝突（SHA 衝突）：可能有其他地方進行了變更，請重新整理頁面後再發布一次。');
         }
         throw new Error(errJson.message || `GitHub API 儲存失敗（HTTP ${putRes.status}）`);
       }

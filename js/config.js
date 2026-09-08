@@ -19,5 +19,5 @@ window.CONTACT_BOOK_CONFIG = {
 
   // GitHub Personal Access Token (PAT)
   // 若在此預先填入，任何人輸入編輯密碼後均可「一鍵直接同步進倉庫」！
-  token: '',
+  token: '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',
 };

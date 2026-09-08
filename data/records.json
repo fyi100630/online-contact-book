@@ -1,5 +1,16 @@
 {
   "classTitle": "411班級聯絡簿",
   "announcement": "",
-  "records": []
+  "records": [
+    {
+      "id": "rec-1788881086626",
+      "date": "2026-09-09",
+      "category": "homework",
+      "subject": "國語",
+      "title": "作業",
+      "details": "",
+      "dueDate": "2026-09-10",
+      "priority": "normal"
+    }
+  ]
 }

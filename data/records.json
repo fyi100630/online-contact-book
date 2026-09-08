@@ -1,46 +1,5 @@
 {
   "classTitle": "411班級聯絡簿",
   "announcement": "",
-  "records": [
-    {
-      "id": "rec-20260909-1",
-      "date": "2026-09-09",
-      "category": "homework",
-      "subject": "社會",
-      "title": "社會習作第一單元隨堂練習",
-      "details": "複習台灣地形與家鄉生活環境。",
-      "dueDate": "2026-09-10",
-      "priority": "normal"
-    },
-    {
-      "id": "rec-1788879484507",
-      "date": "2026-09-09",
-      "category": "exam",
-      "subject": "數學",
-      "title": "test",
-      "details": "test",
-      "dueDate": "",
-      "priority": "normal"
-    },
-    {
-      "id": "rec-1788879594152",
-      "date": "2026-09-09",
-      "category": "homework",
-      "subject": "國語",
-      "title": "1111",
-      "details": "",
-      "dueDate": "2026-09-10",
-      "priority": "normal"
-    },
-    {
-      "id": "rec-1788879731887",
-      "date": "2026-09-09",
-      "category": "homework",
-      "subject": "國語",
-      "title": "3456",
-      "details": "",
-      "dueDate": "2026-09-10",
-      "priority": "normal"
-    }
-  ]
+  "records": []
 }

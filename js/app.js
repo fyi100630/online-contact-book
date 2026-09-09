@@ -35,8 +35,8 @@ createApp({
     const isSaving = ref(false);
 
     // 管理員與 Supabase 雲端設定
-    const isAdmin = ref(false); // 一般編輯權限 (6830 或 180156)
-    const isSuperAdmin = ref(false); // 管理員 (180156)
+    const isAdmin = ref(false); // 編輯權限
+    const isSuperAdmin = ref(false); // 超級管理員權限
     const showPasswordModal = ref(false);
     const inputPassword = ref('');
     const loginError = ref('');
@@ -46,8 +46,8 @@ createApp({
     const sbConfig = reactive({
       supabaseUrl: '',
       supabaseAnonKey: '',
-      editorPassword: SupabaseSync.DEFAULT_EDITOR_PASSWORD,
-      superAdminPassword: SupabaseSync.DEFAULT_SUPER_ADMIN_PASSWORD,
+      editorPassword: '',
+      superAdminPassword: '',
     });
     const isCloudConnected = ref(false);
     const isTestingConnection = ref(false);
@@ -102,22 +102,17 @@ createApp({
     }
 
     // 判斷項目是否在特定日期應該顯示
-    // 嚴格鐵律：若有設定截止日 (dueDate)，截止日當天起 (targetDate >= item.dueDate) 絕對不再顯示此項目！
     function isItemActiveOnDate(item, targetDate) {
       if (!item || (!item.date && !item.dueDate)) return false;
 
-      // 1. 若有設定截止日 (dueDate)
       if (item.dueDate) {
-        // 核心規則：目標日期只要「大於等於」截止日（即到了截止日當天或已過期），一律不顯示！
         if (targetDate >= item.dueDate) {
           return false;
         }
-        // 截止日前：從起始日 (item.date) 開始顯示
         const startDate = item.date || item.dueDate;
         return targetDate >= startDate;
       }
 
-      // 2. 未設定截止日：僅在建立當日 (item.date) 顯示
       return targetDate === item.date;
     }
 
@@ -130,7 +125,6 @@ createApp({
       const isContinuing = Boolean(item.date && item.date < targetDate);
 
       if (diff === 1) {
-        // 截止日前一天（最後顯示的一天）
         return {
           status: 'tomorrow',
           daysLeft: 1,
@@ -149,7 +143,6 @@ createApp({
           isContinuing,
         };
       } else {
-        // diff <= 0 (到了截止日或過期)：在每日視圖中已自動過濾隱藏
         return {
           status: 'expired',
           daysLeft: diff,
@@ -161,12 +154,11 @@ createApp({
       }
     }
 
-    // 依據當前選定日期的項目清單（截止日當天自動隱藏）
+    // 依據當前選定日期的項目清單
     const currentRecords = computed(() => {
       if (viewMode.value === 'daily') {
         return records.value.filter((r) => isItemActiveOnDate(r, currentDate.value));
       } else {
-        // 近期所有未過期項目（截止日必須大於當前日期）
         return records.value.filter((r) => {
           if (r.dueDate) return r.dueDate > currentDate.value;
           return r.date >= currentDate.value;
@@ -195,7 +187,7 @@ createApp({
       currentDate.value = getTodayString();
     }
 
-    // 讀取資料（優先自 Supabase 讀取，降級讀取本機 records.json）
+    // 讀取資料
     async function loadData() {
       isLoading.value = true;
       try {
@@ -206,7 +198,6 @@ createApp({
           records.value = Array.isArray(res.data.records) ? res.data.records : [];
           isCloudConnected.value = (res.source === 'supabase' || res.source === 'supabase-initialized');
 
-          // 若當前今天無紀錄，但有其他未來紀錄，自動選取最新日期
           const dates = records.value.map((r) => r.date).sort();
           if (!records.value.some((r) => r.date === currentDate.value) && dates.length > 0) {
             const latestDate = dates[dates.length - 1];
@@ -224,7 +215,7 @@ createApp({
       }
     }
 
-    // 儲存資料（直接同步發布至 Supabase 雲端資料庫）
+    // 儲存資料
     async function saveAllData() {
       if (!isAdmin.value) {
         showToast('您目前為訪客模式，無儲存權限', 'error');
@@ -257,7 +248,7 @@ createApp({
       }
     }
 
-    // Modal: 打開新增項目
+    // Modal 控制
     function openAddModal(defaultCategory = 'homework') {
       isEditingExisting.value = false;
       formItem.id = 'rec-' + Date.now();
@@ -271,7 +262,6 @@ createApp({
       showEditModal.value = true;
     }
 
-    // Modal: 打開編輯現有項目
     function openEditModal(item) {
       isEditingExisting.value = true;
       formItem.id = item.id;
@@ -285,7 +275,6 @@ createApp({
       showEditModal.value = true;
     }
 
-    // 儲存單一項目表單
     function submitItemForm() {
       if (!formItem.title.trim()) {
         showToast('請輸入項目內容或標題', 'error');
@@ -316,14 +305,12 @@ createApp({
       showToast(isEditingExisting.value ? '已修改項目' : '已新增項目，記得點擊右上角「發布變更」！', 'success');
     }
 
-    // 刪除項目
     function removeItem(item) {
       if (!confirm(`確定要刪除「${item.title}」嗎？`)) return;
       records.value = records.value.filter((r) => r.id !== item.id);
       showToast('已刪除項目，記得點擊右上角「發布變更」！', 'info');
     }
 
-    // 一鍵複製 LINE 群組格式文字
     function copyLineFormat() {
       const dateText = formatDateWithWeekday(currentDate.value);
       const lines = [
@@ -388,7 +375,6 @@ createApp({
           showToast('📋 已複製 LINE 格式文字，可直接貼至班級群組！', 'success');
         })
         .catch(() => {
-          // 降級方式
           const textarea = document.createElement('textarea');
           textarea.value = fullText;
           document.body.appendChild(textarea);
@@ -399,12 +385,10 @@ createApp({
         });
     }
 
-    // 列印
     function printNotebook() {
       window.print();
     }
 
-    // 密碼登入相關
     function openPasswordModal() {
       passwordModalTitle.value = '解鎖編輯模式';
       passwordModalSubtitle.value = '請輸入通行密碼以開啟權限';
@@ -421,56 +405,87 @@ createApp({
       showPasswordModal.value = true;
     }
 
-    function submitPassword() {
-      const role = SupabaseSync.verifyPassword(inputPassword.value);
-      if (role === 'super_admin') {
-        SupabaseSync.setSessionAuth('super_admin');
-        isAdmin.value = true;
-        isSuperAdmin.value = true;
-        showPasswordModal.value = false;
-        inputPassword.value = '';
-        loginError.value = '';
-        showToast('👑 管理員驗證成功！已解鎖公告與設定功能', 'success');
-        updateAdminLinks();
-      } else if (role === 'editor') {
-        SupabaseSync.setSessionAuth('editor');
-        isAdmin.value = true;
-        isSuperAdmin.value = false;
-        showPasswordModal.value = false;
-        inputPassword.value = '';
-        loginError.value = '';
-        showToast('✏️ 編輯密碼驗證成功！已切換至編輯模式', 'success');
-        updateAdminLinks();
-      } else {
+    // 取得 Supabase 連線物件
+    function getSupabaseClient() {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        const url = sbConfig.supabaseUrl || window.CONTACT_BOOK_CONFIG?.supabaseUrl;
+        const key = sbConfig.supabaseAnonKey || window.CONTACT_BOOK_CONFIG?.supabaseAnonKey;
+        if (url && key) {
+          return window.supabase.createClient(url, key);
+        }
+      }
+      return null;
+    }
+
+    // 密碼登入驗證（直接呼叫 Supabase RPC 比對）
+    async function submitPassword() {
+      if (!inputPassword.value) {
+        loginError.value = '請輸入密碼';
+        return;
+      }
+
+      const client = getSupabaseClient();
+      if (!client) {
+        loginError.value = '無法建立 Supabase 連線，請確認設定';
+        return;
+      }
+
+      loginError.value = '驗證中...';
+
+      try {
+        // 先向 Supabase 比對是否為超級管理員
+        const { data: isSuper, error: errSuper } = await client.rpc('verify_app_password', {
+          target_role: 'super_admin',
+          input_password: inputPassword.value,
+        });
+
+        if (errSuper) throw errSuper;
+
+        if (isSuper) {
+          isAdmin.value = true;
+          isSuperAdmin.value = true;
+          showPasswordModal.value = false;
+          inputPassword.value = '';
+          loginError.value = '';
+          showToast('👑 管理員驗證成功！已解鎖公告與設定功能', 'success');
+          return;
+        }
+
+        // 若不是超級管理員，再比對是否為一般編輯者
+        const { data: isEditor, error: errEditor } = await client.rpc('verify_app_password', {
+          target_role: 'editor',
+          input_password: inputPassword.value,
+        });
+
+        if (errEditor) throw errEditor;
+
+        if (isEditor) {
+          isAdmin.value = true;
+          isSuperAdmin.value = false;
+          showPasswordModal.value = false;
+          inputPassword.value = '';
+          loginError.value = '';
+          showToast('✏️ 編輯密碼驗證成功！已切換至編輯模式', 'success');
+          return;
+        }
+
         loginError.value = '密碼錯誤，請重新輸入';
+      } catch (err) {
+        loginError.value = '連線驗證失敗：' + (err.message || '請確認網路與資料表');
       }
     }
 
     function logoutAdmin() {
-      SupabaseSync.setSessionAuth(null);
       isAdmin.value = false;
       isSuperAdmin.value = false;
       showConfigModal.value = false;
       showClassInfoModal.value = false;
-      // 清理網址中的 hash
       try {
         window.history.replaceState(null, '', window.location.pathname);
       } catch (e) {}
       showToast('已退出編輯，切換為唯讀訪客模式', 'info');
     }
 
-    // 專屬免密碼快速網址
-    const simplePasswordLink = ref('');
-    const superAdminLink = ref('');
-
-    function updateAdminLinks() {
-      const editorPwd = sbConfig.editorPassword || SupabaseSync.DEFAULT_EDITOR_PASSWORD;
-      const superPwd = sbConfig.superAdminPassword || SupabaseSync.DEFAULT_SUPER_ADMIN_PASSWORD;
-      simplePasswordLink.value = SupabaseSync.generateEditorLink(editorPwd);
-      superAdminLink.value = SupabaseSync.generateSuperAdminLink(superPwd);
-    }
-
-    // 測試 Supabase 連線
     async function testSupabaseConnection() {
       if (!sbConfig.supabaseUrl || !sbConfig.supabaseAnonKey) {
         connectionTestResult.value = {
@@ -499,35 +514,14 @@ createApp({
       }
     }
 
-    // 儲存 Supabase 設定
     function saveSupabaseSettings() {
       SupabaseSync.saveConfig(sbConfig);
       isAdmin.value = true;
-      updateAdminLinks();
       loadData();
       initRealtime();
       showToast('設定已成功儲存！', 'success');
     }
 
-    function copySimplePasswordLink() {
-      if (!simplePasswordLink.value) {
-        updateAdminLinks();
-      }
-      navigator.clipboard.writeText(simplePasswordLink.value).then(() => {
-        showToast('🔗 已複製編輯專屬連結！可私下傳送給編輯人員。', 'success');
-      });
-    }
-
-    function copySuperAdminLink() {
-      if (!superAdminLink.value) {
-        updateAdminLinks();
-      }
-      navigator.clipboard.writeText(superAdminLink.value).then(() => {
-        showToast('👑 已複製管理員免密碼連結！', 'success');
-      });
-    }
-
-    // 下載 JSON 備份
     function downloadBackup() {
       const payload = {
         classTitle: classTitle.value,
@@ -538,7 +532,6 @@ createApp({
       showToast('已匯出 JSON 資料備份檔', 'info');
     }
 
-    // 初始化即時推播監聽 (Realtime)
     function initRealtime() {
       if (!sbConfig.supabaseUrl || !sbConfig.supabaseAnonKey) return;
       SupabaseSync.subscribeToChanges(sbConfig, (newData) => {
@@ -554,7 +547,6 @@ createApp({
       });
     }
 
-    // 輔助函式：隔天字串
     function getNextDayString(dateStr) {
       const [y, m, d] = dateStr.split('-').map(Number);
       const next = new Date(y, m - 1, d + 1);
@@ -564,22 +556,11 @@ createApp({
       return `${ny}-${nm}-${nd}`;
     }
 
-    // 初始化載入
     onMounted(() => {
-      // 解析身分與設定
       const effective = SupabaseSync.getEffectiveConfig();
       sbConfig.supabaseUrl = effective.supabaseUrl;
       sbConfig.supabaseAnonKey = effective.supabaseAnonKey;
-      sbConfig.editorPassword = effective.editorPassword;
-      sbConfig.superAdminPassword = effective.superAdminPassword;
 
-      // 若網址帶有密碼或已有 Session，解鎖對應管理模式
-      if (effective.isAdminRoute) {
-        isAdmin.value = true;
-        isSuperAdmin.value = effective.isSuperAdmin;
-      }
-
-      updateAdminLinks();
       loadData();
       initRealtime();
     });
@@ -614,10 +595,6 @@ createApp({
       openSuperAdminModal,
       submitPassword,
       logoutAdmin,
-      simplePasswordLink,
-      copySimplePasswordLink,
-      superAdminLink,
-      copySuperAdminLink,
       getItemDeadlineInfo,
       toast,
       currentRecords,
@@ -639,3 +616,4 @@ createApp({
     };
   },
 }).mount('#app');
+

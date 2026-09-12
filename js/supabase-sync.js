@@ -1,11 +1,8 @@
-/**
- * supabase-sync.js
- * 處理線上班級聯絡簿的 Supabase 雲端資料庫讀寫、Realtime 即時推播與權限管理
- */
+
 
 const SupabaseSync = (function () {
   const STORAGE_KEY = 'contact_book_sb_config';
-  const AUTH_ROLE_KEY = 'contact_book_auth_role'; // 'editor' | 'super_admin'
+  const AUTH_ROLE_KEY = 'contact_book_auth_role'; 
 
   const DEFAULT_EDITOR_PASSWORD = '6830';
   const DEFAULT_SUPER_ADMIN_PASSWORD = '180156';
@@ -15,7 +12,6 @@ const SupabaseSync = (function () {
   let cachedClientKey = '';
   let activeRealtimeChannel = null;
 
-  // 取得本地快取的設定
   function getSavedConfig() {
     try {
       const item = localStorage.getItem(STORAGE_KEY);
@@ -25,7 +21,6 @@ const SupabaseSync = (function () {
     }
   }
 
-  // 儲存設定至 localStorage
   function saveConfig(config) {
     try {
       const current = getSavedConfig();
@@ -36,7 +31,7 @@ const SupabaseSync = (function () {
         superAdminPassword: (config.superAdminPassword || '').trim() || DEFAULT_SUPER_ADMIN_PASSWORD,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      // 重設 client 快取
+      
       cachedClient = null;
       return true;
     } catch (e) {
@@ -45,7 +40,6 @@ const SupabaseSync = (function () {
     }
   }
 
-  // 讀取當前有效設定（優先序：URL Hash 傳參 > localStorage > 全域 config.js）
   function getEffectiveConfig() {
     const saved = getSavedConfig();
     const globalCfg = window.CONTACT_BOOK_CONFIG || {};
@@ -55,13 +49,12 @@ const SupabaseSync = (function () {
     let editorPassword = saved.editorPassword || globalCfg.defaultEditorPassword || DEFAULT_EDITOR_PASSWORD;
     let superAdminPassword = saved.superAdminPassword || globalCfg.defaultSuperAdminPassword || DEFAULT_SUPER_ADMIN_PASSWORD;
 
-    // 解析網址 hash
     let isAdminRoute = false;
     let isSuperAdmin = false;
     const hash = window.location.hash ? window.location.hash.slice(1).trim() : '';
 
     if (hash) {
-      // 支援 #180156 或 #6830
+      
       if (hash === superAdminPassword || hash === DEFAULT_SUPER_ADMIN_PASSWORD) {
         isAdminRoute = true;
         isSuperAdmin = true;
@@ -72,7 +65,6 @@ const SupabaseSync = (function () {
         setSessionAuth('editor');
       }
 
-      // 支援網址帶參數格式：#180156&sbUrl=...&sbKey=...
       if (hash.includes('&')) {
         const params = new URLSearchParams(hash);
         if (params.has('sbUrl')) supabaseUrl = params.get('sbUrl');
@@ -80,7 +72,6 @@ const SupabaseSync = (function () {
       }
     }
 
-    // 檢查目前 Session 登入狀態
     const sessionRole = getSessionAuthRole();
     if (sessionRole === 'super_admin') {
       isAdminRoute = true;
@@ -101,7 +92,6 @@ const SupabaseSync = (function () {
     };
   }
 
-  // 驗證通行密碼
   function verifyPassword(inputPassword) {
     if (!inputPassword) return null;
     const config = getEffectiveConfig();
@@ -127,7 +117,6 @@ const SupabaseSync = (function () {
     return sessionStorage.getItem(AUTH_ROLE_KEY) || null;
   }
 
-  // 取得或建立 Supabase Client
   function getSupabaseClient(url, key) {
     if (!window.supabase) {
       console.warn('Supabase SDK 尚未載入');
@@ -165,7 +154,6 @@ const SupabaseSync = (function () {
     setSessionAuth,
     getSessionAuthRole,
 
-    // 測試 Supabase 連線
     async testConnection(url, key) {
       const client = getSupabaseClient(url, key);
       if (!client) {
@@ -183,11 +171,9 @@ const SupabaseSync = (function () {
       return { success: true, data };
     },
 
-    // 讀取聯絡簿資料
     async loadData(config) {
       const client = getSupabaseClient(config.supabaseUrl, config.supabaseAnonKey);
 
-      // 若有設定 Supabase，優先從雲端讀取
       if (client) {
         try {
           const { data, error } = await client
@@ -210,7 +196,7 @@ const SupabaseSync = (function () {
               },
             };
           } else {
-            // 資料表尚無 default 資料，自動初始化一筆
+            
             const initialPayload = {
               id: 'default',
               class_title: '411班級聯絡簿',
@@ -233,7 +219,6 @@ const SupabaseSync = (function () {
         }
       }
 
-      // 降級讀取本機 records.json (離線或初次尚未設定 Supabase 時)
       try {
         const localRes = await fetch(`data/records.json?t=${Date.now()}`);
         if (localRes.ok) {
@@ -259,7 +244,6 @@ const SupabaseSync = (function () {
       };
     },
 
-    // 儲存所有資料至 Supabase
     async saveData(config, payload, summary = '') {
       const client = getSupabaseClient(config.supabaseUrl, config.supabaseAnonKey);
       if (!client) {
@@ -283,7 +267,6 @@ const SupabaseSync = (function () {
         throw new Error(error.message || '儲存至 Supabase 失敗');
       }
 
-      // 自動寫入 72 小時歷史版本紀錄快照 (contact_book_logs)
       try {
         const recordsArr = Array.isArray(payload.records) ? payload.records : [];
         const hwCount = recordsArr.filter((r) => r.category === 'homework').length;
@@ -310,14 +293,12 @@ const SupabaseSync = (function () {
       };
     },
 
-    // 取得過去 72 小時內的歷史版本快照清單
     async fetchLogs(config) {
       const client = getSupabaseClient(config.supabaseUrl, config.supabaseAnonKey);
       if (!client) {
         throw new Error('尚未設定 Supabase 連線資訊');
       }
 
-      // 計算 72 小時前的時間點
       const cutoffTime = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
 
       const { data, error } = await client
@@ -327,7 +308,7 @@ const SupabaseSync = (function () {
         .order('created_at', { ascending: false });
 
       if (error) {
-        // 資料表尚未在 Supabase 中建立
+        
         if (error.code === '42P01' || (error.message && error.message.includes('contact_book_logs'))) {
           return {
             success: false,
@@ -346,7 +327,6 @@ const SupabaseSync = (function () {
       };
     },
 
-    // 訂閱 Supabase Realtime 即時推播（任何裝置發布，所有裝置即時同步）
     subscribeToChanges(config, onUpdate) {
       if (activeRealtimeChannel) {
         try {
@@ -382,7 +362,7 @@ const SupabaseSync = (function () {
           )
           .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
-              // Realtime 連線成功
+              
             }
           });
 
@@ -394,19 +374,16 @@ const SupabaseSync = (function () {
       }
     },
 
-    // 產生管理員連結（含密碼）
     generateSuperAdminLink(pwd) {
       const base = window.location.origin + window.location.pathname;
       return `${base}#${pwd || DEFAULT_SUPER_ADMIN_PASSWORD}`;
     },
 
-    // 產生專屬編輯連結（含密碼）
     generateEditorLink(pwd) {
       const base = window.location.origin + window.location.pathname;
       return `${base}#${pwd || DEFAULT_EDITOR_PASSWORD}`;
     },
 
-    // 下載 JSON 備份檔案
     downloadBackup(dataObj) {
       const jsonStr = JSON.stringify(dataObj, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
@@ -423,5 +400,4 @@ const SupabaseSync = (function () {
   };
 })();
 
-// 掛載至全域
 window.SupabaseSync = SupabaseSync;

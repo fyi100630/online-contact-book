@@ -351,10 +351,24 @@ const SupabaseSync = (function () {
             },
             (payload) => {
               if (payload.new && typeof onUpdate === 'function') {
+                let recs = payload.new.records;
+                if (typeof recs === 'string') {
+                  try {
+                    recs = JSON.parse(recs);
+                  } catch (e) {}
+                }
+                if (!Array.isArray(recs) || recs.length === 0) {
+                  SupabaseSync.loadData(config).then((res) => {
+                    if (res && res.success && res.data) {
+                      onUpdate(res.data);
+                    }
+                  });
+                  return;
+                }
                 onUpdate({
                   classTitle: payload.new.class_title,
                   announcement: payload.new.announcement,
-                  records: payload.new.records || [],
+                  records: recs,
                   updatedAt: payload.new.updated_at,
                 });
               }

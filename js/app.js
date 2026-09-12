@@ -160,7 +160,7 @@ createApp({
       }
     });
 
-    const homeworkItems = computed(() => currentRecords.value.filter((r) => r.category === 'homework'));
+    const homeworkItems = computed(() => currentRecords.value.filter((r) => r.category === 'homework' || !r.category));
     const examItems = computed(() => currentRecords.value.filter((r) => r.category === 'exam'));
     const submissionItems = computed(() => currentRecords.value.filter((r) => r.category === 'submission'));
     const reminderItems = computed(() => currentRecords.value.filter((r) => r.category === 'reminder'));

@@ -581,10 +581,10 @@ createApp({
       }
     }
 
-    // 打開歷史紀錄視窗並抓取過去 72 小時快照
+    // 打開歷史紀錄視窗並抓取過去 72 小時快照（僅管理員模式可操作，一般編輯無權限）
     async function openLogsModal() {
-      if (!isAdmin.value) {
-        showToast('您目前為訪客模式，無權限檢視歷史紀錄', 'error');
+      if (!isSuperAdmin.value) {
+        showToast('只有管理員具備檢視與還原歷史紀錄之權限，編輯模式無法存取', 'error');
         return;
       }
       showLogsModal.value = true;
@@ -594,6 +594,10 @@ createApp({
 
     // 抓取 72 小時歷史紀錄清單
     async function fetchHistoryLogs() {
+      if (!isSuperAdmin.value) {
+        showToast('只有管理員可存取歷史紀錄', 'error');
+        return;
+      }
       isLoadingLogs.value = true;
       logsTableNotFound.value = false;
       try {
@@ -622,10 +626,10 @@ createApp({
       }
     }
 
-    // 還原指定歷史版本
+    // 還原指定歷史版本（僅管理員模式可操作）
     async function restoreSnapshot(logItem) {
-      if (!isAdmin.value) {
-        showToast('無還原權限', 'error');
+      if (!isSuperAdmin.value) {
+        showToast('只有管理員具備還原歷史版本之權限', 'error');
         return;
       }
       const timeInfo = formatLogTime(logItem.created_at);

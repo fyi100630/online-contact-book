@@ -63,3 +63,48 @@ EXCEPTION
     -- 如果 publication 尚未存在，則建立
     CREATE PUBLICATION supabase_realtime FOR TABLE public.contact_book;
 END $$;
+
+-- 6. 建立 72 小時歷史版本紀錄表 (contact_book_logs)
+CREATE TABLE IF NOT EXISTS public.contact_book_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    class_title TEXT NOT NULL,
+    announcement TEXT DEFAULT '',
+    records JSONB NOT NULL DEFAULT '[]'::jsonb,
+    summary TEXT DEFAULT '',
+    editor_role TEXT DEFAULT 'admin'
+);
+
+-- 建立時間排序索引
+CREATE INDEX IF NOT EXISTS idx_contact_book_logs_created_at ON public.contact_book_logs (created_at DESC);
+
+-- 啟用 RLS
+ALTER TABLE public.contact_book_logs ENABLE ROW LEVEL SECURITY;
+
+-- 存取策略
+DROP POLICY IF EXISTS "Allow public read logs" ON public.contact_book_logs;
+CREATE POLICY "Allow public read logs" ON public.contact_book_logs FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert logs" ON public.contact_book_logs;
+CREATE POLICY "Allow public insert logs" ON public.contact_book_logs FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public delete logs" ON public.contact_book_logs;
+CREATE POLICY "Allow public delete logs" ON public.contact_book_logs FOR DELETE USING (true);
+
+-- 7. 建立逾期 72 小時自動清理觸發器 (Auto Prune Trigger)
+-- 每次寫入新快照時，自動刪除 72 小時以前的歷史紀錄
+CREATE OR REPLACE FUNCTION public.prune_expired_contact_book_logs()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM public.contact_book_logs
+    WHERE created_at < (now() - INTERVAL '72 hours');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_prune_contact_book_logs ON public.contact_book_logs;
+CREATE TRIGGER trigger_prune_contact_book_logs
+AFTER INSERT ON public.contact_book_logs
+FOR EACH STATEMENT
+EXECUTE FUNCTION public.prune_expired_contact_book_logs();
+

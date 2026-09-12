@@ -134,6 +134,12 @@
             編輯登入
           </button>
 
+          <!-- 管理員專用：72小時歷史紀錄與還原 -->
+          <button v-if="isAdmin" @click="openLogsModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-lg border border-slate-200 shadow-xs transition active:scale-95" title="查看過去 72 小時存檔紀錄與一鍵還原">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            歷史紀錄
+          </button>
+
           <!-- 管理員專用：發布變更到 Supabase 雲端 -->
           <button v-if="isAdmin" @click="saveAllData" :disabled="isSaving" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm transition active:scale-95" title="儲存並同步至雲端資料庫">
             <svg v-if="isSaving" class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
@@ -452,6 +458,7 @@
             🔒 編輯登入
           </button>
           <template v-else>
+            <button @click="openLogsModal" class="hover:text-slate-600 underline">🕒 歷史紀錄</button>
             <button v-if="isSuperAdmin" @click="showConfigModal = true" class="hover:text-slate-600 underline">⚙️ 同步／密碼設定</button>
             <button v-else @click="openSuperAdminModal" class="hover:text-slate-600 underline">🔑 管理員解鎖</button>
             <button @click="logoutAdmin" class="text-rose-500 hover:text-rose-700 underline">🚪 登出</button>
@@ -689,6 +696,123 @@
       </div>
     </div>
 
+    <!-- Modal 5: 72 小時歷史版本紀錄與還原 (管理員專用) -->
+    <div v-if="showLogsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
+      <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+        <!-- 彈窗標題列 -->
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🕒</span>
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">歷史版本紀錄 (過去 72 小時)</h3>
+              <p class="text-xs text-slate-500">系統自動保存 72 小時內存檔快照，逾期將自動從雲端刪除。僅管理員可操作還原。</p>
+            </div>
+          </div>
+          <button @click="showLogsModal = false" class="text-slate-400 hover:text-slate-600 text-lg p-1">✕</button>
+        </div>
+
+        <!-- 彈窗內容區 -->
+        <div class="mt-4 overflow-y-auto flex-1 pr-1 space-y-3">
+          <!-- 載入中狀態 -->
+          <div v-if="isLoadingLogs" class="py-12 text-center text-slate-500 text-sm">
+            <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent mb-2"></div>
+            <p>正在載入歷史版本紀錄...</p>
+          </div>
+
+          <!-- 資料表尚未建立提示 -->
+          <div v-else-if="logsTableNotFound" class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs leading-relaxed space-y-2">
+            <p class="font-bold flex items-center gap-1.5 text-sm">
+              <span>⚠️</span> 雲端資料庫尚未建立 contact_book_logs 表格
+            </p>
+            <p>請至 Supabase 控制台的 <strong>SQL Editor</strong> 執行專案最新的 <code>supabase_schema.sql</code> 腳本，即可啟用 72 小時自動備份與逾期清理功能！</p>
+            <button @click="fetchHistoryLogs" class="mt-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition text-xs">
+              我已執行完成，重新整理
+            </button>
+          </div>
+
+          <!-- 無紀錄狀態 -->
+          <div v-else-if="logsList.length === 0" class="py-12 text-center text-slate-400 text-sm">
+            <span class="text-3xl block mb-2">📭</span>
+            <p>過去 72 小時內尚無修改快照紀錄。</p>
+            <p class="text-xs text-slate-400 mt-1">每次點擊右上角「發布變更」時，系統均會自動在此留下歷史備份。</p>
+          </div>
+
+          <!-- 歷史快照清單 -->
+          <div v-else class="space-y-2.5">
+            <div v-for="(log, idx) in logsList" :key="log.id" class="border border-slate-200 hover:border-slate-300 rounded-xl p-3.5 transition bg-slate-50/50 hover:bg-white">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="idx === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'">
+                      {{ idx === 0 ? '最新備份' : `#${logsList.length - idx}` }}
+                    </span>
+                    <span class="font-mono text-sm font-bold text-slate-800">
+                      {{ formatLogTime(log.created_at).exact }}
+                    </span>
+                    <span class="text-xs text-slate-500 font-medium">
+                      （{{ formatLogTime(log.created_at).relative }}）
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-600 mt-1 flex items-center gap-1.5">
+                    <span class="text-slate-400">摘要：</span>
+                    <span class="font-medium text-slate-700">{{ log.summary || '存檔快照' }}</span>
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                  <button @click="toggleLogPreview(log)" class="px-2.5 py-1 text-xs border border-slate-300 hover:bg-slate-100 text-slate-700 font-medium rounded-lg transition">
+                    {{ selectedLogForPreview && selectedLogForPreview.id === log.id ? '收合內容' : '預覽內容' }}
+                  </button>
+                  <button @click="restoreSnapshot(log)" :disabled="isRestoring" class="px-3 py-1 text-xs bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold rounded-lg shadow-xs transition active:scale-95 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    還原此版本
+                  </button>
+                </div>
+              </div>
+
+              <!-- 預覽展開區塊 -->
+              <div v-if="selectedLogForPreview && selectedLogForPreview.id === log.id" class="mt-3 pt-3 border-t border-slate-200 text-xs space-y-2 bg-white p-3 rounded-lg border border-slate-100 animate-in fade-in duration-150">
+                <div class="flex justify-between items-center text-slate-500 flex-wrap gap-1">
+                  <span>班級名稱：<strong class="text-slate-800">{{ log.class_title }}</strong></span>
+                  <span v-if="log.announcement">公告：<span class="text-amber-800">{{ log.announcement }}</span></span>
+                </div>
+                <div class="text-slate-600">
+                  <span class="font-bold block mb-1 text-slate-700">快照內項目明細（共 {{ Array.isArray(log.records) ? log.records.length : 0 }} 筆）：</span>
+                  <div v-if="!Array.isArray(log.records) || log.records.length === 0" class="text-slate-400 italic">
+                    此版本無任何項目紀錄
+                  </div>
+                  <ul v-else class="space-y-1 max-h-40 overflow-y-auto pr-1">
+                    <li v-for="(rec, rIdx) in log.records" :key="rec.id || rIdx" class="flex items-center gap-1.5 py-0.5 text-[11px] border-b border-slate-50">
+                      <span class="font-mono text-slate-400">#{{ rIdx + 1 }}</span>
+                      <span class="px-1.5 py-0.2 rounded font-semibold text-[10px]" :class="{
+                        'bg-emerald-100 text-emerald-800': rec.category === 'homework',
+                        'bg-indigo-100 text-indigo-800': rec.category === 'exam',
+                        'bg-amber-100 text-amber-800': rec.category === 'submission',
+                        'bg-rose-100 text-rose-800': rec.category === 'reminder'
+                      }">
+                        {{ rec.category === 'homework' ? '作業' : rec.category === 'exam' ? '考試' : rec.category === 'submission' ? '繳交' : '提醒' }}
+                      </span>
+                      <span v-if="rec.subject" class="font-bold text-slate-700">[{{ rec.subject }}]</span>
+                      <span class="text-slate-900 font-medium">{{ rec.title }}</span>
+                      <span v-if="rec.dueDate" class="text-slate-400">（截止: {{ rec.dueDate }}）</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 彈窗底欄 -->
+        <div class="pt-3 mt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-400">
+          <span>72 小時以上紀錄由資料庫自動刪除清理</span>
+          <button type="button" @click="showLogsModal = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">
+            關閉視窗
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast 通知浮動提示 -->
     <div v-if="toast.show" class="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-medium transition transform translate-y-0"
          :class="{
@@ -703,7 +827,7 @@
 
   <!-- 引入全域設定檔、Supabase 雲端模組與主程式 -->
   <script src="js/config.js"></script>
-  <script src="js/supabase-sync.js"></script>
-  <script src="js/app.js?v=20260909_3"></script>
+  <script src="js/supabase-sync.js?v=20260912_1"></script>
+  <script src="js/app.js?v=20260912_1"></script>
 </body>
 </html>

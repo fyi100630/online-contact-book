@@ -134,8 +134,8 @@
             編輯登入
           </button>
 
-          <!-- 管理員專用：72小時歷史紀錄與還原 -->
-          <button v-if="isAdmin" @click="openLogsModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-lg border border-slate-200 shadow-xs transition active:scale-95" title="查看過去 72 小時存檔紀錄與一鍵還原">
+          <!-- 管理員專用：72小時歷史紀錄與還原（僅管理員模式可存取，一般編輯模式無權限） -->
+          <button v-if="isSuperAdmin" @click="openLogsModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-lg border border-slate-200 shadow-xs transition active:scale-95" title="查看過去 72 小時存檔紀錄與一鍵還原">
             <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             歷史紀錄
           </button>
@@ -458,7 +458,7 @@
             🔒 編輯登入
           </button>
           <template v-else>
-            <button @click="openLogsModal" class="hover:text-slate-600 underline">🕒 歷史紀錄</button>
+            <button v-if="isSuperAdmin" @click="openLogsModal" class="hover:text-slate-600 underline">🕒 歷史紀錄</button>
             <button v-if="isSuperAdmin" @click="showConfigModal = true" class="hover:text-slate-600 underline">⚙️ 同步／密碼設定</button>
             <button v-else @click="openSuperAdminModal" class="hover:text-slate-600 underline">🔑 管理員解鎖</button>
             <button @click="logoutAdmin" class="text-rose-500 hover:text-rose-700 underline">🚪 登出</button>
@@ -696,8 +696,8 @@
       </div>
     </div>
 
-    <!-- Modal 5: 72 小時歷史版本紀錄與還原 (管理員專用) -->
-    <div v-if="showLogsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
+    <!-- Modal 5: 72 小時歷史版本紀錄與還原 (最高管理員專用，一般編輯無權限) -->
+    <div v-if="showLogsModal && isSuperAdmin" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
       <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
         <!-- 彈窗標題列 -->
         <div class="flex justify-between items-center pb-3 border-b border-slate-100">
@@ -827,7 +827,7 @@
 
   <!-- 引入全域設定檔、Supabase 雲端模組與主程式 -->
   <script src="js/config.js"></script>
-  <script src="js/supabase-sync.js?v=20260912_1"></script>
-  <script src="js/app.js?v=20260912_1"></script>
+  <script src="js/supabase-sync.js?v=20260912_2"></script>
+  <script src="js/app.js?v=20260912_2"></script>
 </body>
 </html>

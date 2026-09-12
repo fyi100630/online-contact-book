@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>線上班級聯絡簿</title>
-  <!-- Tailwind CSS CDN -->
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -23,13 +23,13 @@
       }
     }
   </script>
-  <!-- Google Fonts: Noto Sans TC -->
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Vue 3 CDN -->
+  
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
-  <!-- Supabase JS Client CDN -->
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -37,8 +37,8 @@
       font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
       background-color: #f8fafc;
     }
-    [v-cloak] {
-      display: none;
+    [v-cloak], [v-cloak] * {
+      display: none !important;
     }
     @media print {
       .no-print {
@@ -58,7 +58,6 @@
 <body class="text-slate-800 min-h-screen flex flex-col">
   <div id="app" v-cloak class="flex-1 flex flex-col">
 
-    <!-- 頂部管理員橫幅（僅在擁有管理權限時顯示） -->
     <div v-if="isAdmin" class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-xs sm:text-sm font-medium px-4 py-2 no-print flex justify-between items-center shadow-sm">
       <div class="flex items-center gap-2">
         <span class="bg-white/20 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5">
@@ -70,7 +69,7 @@
         </span>
       </div>
       <div class="flex items-center gap-2">
-        <!-- 僅管理員可見 -->
+        
         <button v-if="isSuperAdmin" @click="showClassInfoModal = true" class="hover:underline flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded hover:bg-white/20 transition">
           📢 班級公告
         </button>
@@ -78,7 +77,6 @@
           ⚙️ 密碼／同步設定
         </button>
 
-        <!-- 若為一般編輯者，提供解鎖管理員的入口 -->
         <button v-if="!isSuperAdmin" @click="openSuperAdminModal" class="hover:underline flex items-center gap-1 bg-white/10 px-2 py-1 rounded hover:bg-white/20 transition text-xs">
           🔑 管理員解鎖
         </button>
@@ -89,12 +87,11 @@
       </div>
     </div>
 
-    <!-- 頂部導覽列 / 標題區 -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <!-- 標題 -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-emerald-500/20">
+        
+        <div class="flex items-center gap-2.5">
+          <div class="text-2xl sm:text-3xl flex items-center justify-center select-none leading-none">
             📖
           </div>
           <div>
@@ -114,33 +111,23 @@
           </div>
         </div>
 
-        <!-- 頂部捷徑按鈕 (LINE 複製、列印、編輯登入、發布變更) -->
         <div class="flex items-center flex-wrap gap-2 w-full sm:w-auto justify-end no-print">
-          <!-- 一鍵複製 LINE 格式 -->
-          <button @click="copyLineFormat" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition active:scale-95">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 5.92 2 10.75c0 3.12 1.88 5.86 4.7 7.37-.17.65-.63 2.37-.73 2.76-.11.45.16.44.34.33.15-.09 2.06-1.4 2.87-1.95.57.08 1.15.14 1.82.14 5.52 0 10-3.92 10-8.65C22 5.92 17.52 2 12 2z"/></svg>
-            複製 LINE
-          </button>
 
-          <!-- 列印 -->
           <button @click="printNotebook" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-lg border border-slate-300 transition active:scale-95">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
             列印
           </button>
 
-          <!-- 訪客狀態：編輯登入按鈕 -->
           <button v-if="!isAdmin" @click="openPasswordModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm transition active:scale-95">
             <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
             編輯登入
           </button>
 
-          <!-- 管理員專用：72小時歷史紀錄與還原（僅管理員模式可存取，一般編輯模式無權限） -->
           <button v-if="isSuperAdmin" @click="openLogsModal" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-lg border border-slate-200 shadow-xs transition active:scale-95" title="查看過去 72 小時存檔紀錄與一鍵還原">
             <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             歷史紀錄
           </button>
 
-          <!-- 管理員專用：發布變更到 Supabase 雲端 -->
           <button v-if="isAdmin" @click="saveAllData" :disabled="isSaving" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm transition active:scale-95" title="儲存並同步至雲端資料庫">
             <svg v-if="isSaving" class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
@@ -150,23 +137,20 @@
       </div>
     </header>
 
-    <!-- 主要內容區 -->
     <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
 
-      <!-- 重要公告區 (若有內容才顯示) -->
       <div v-if="announcement" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-xs flex items-start gap-3">
         <span class="text-2xl leading-none">📢</span>
         <div class="flex-1">
           <h3 class="font-bold text-amber-900 text-sm sm:text-base">重要公告</h3>
           <p class="text-sm text-amber-800 mt-1 whitespace-pre-line leading-relaxed">{{ announcement }}</p>
         </div>
-        <!-- 只有管理員能修改公告 -->
+        
         <button v-if="isSuperAdmin" @click="showClassInfoModal = true" class="text-xs text-amber-700 underline no-print hover:text-amber-900">修改公告</button>
       </div>
 
-      <!-- 日期導覽工具列 -->
       <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 no-print">
-        <!-- 前後天切換 -->
+        
         <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
           <button @click="changeDay(-1)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -181,7 +165,6 @@
           </button>
         </div>
 
-        <!-- 日期挑選器與大標題 -->
         <div class="flex items-center gap-3">
           <div class="text-center">
             <span class="text-xs uppercase font-bold text-slate-400 block tracking-wider">聯絡簿日期</span>
@@ -192,7 +175,6 @@
           </div>
         </div>
 
-        <!-- 管理員快速新增項目按鈕 -->
         <div class="w-full sm:w-auto flex justify-end">
           <button v-if="isAdmin" @click="openAddModal('homework')" class="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold shadow-sm transition flex items-center justify-center gap-2 active:scale-95">
             <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -201,22 +183,18 @@
         </div>
       </div>
 
-      <!-- 列印時顯示的日期大標題 -->
       <div class="hidden print:block text-center mb-6">
         <h2 class="text-2xl font-black text-slate-900">{{ classTitle }} - 聯絡簿</h2>
         <p class="text-slate-600 mt-1 font-medium">{{ formatDateWithWeekday(currentDate) }}</p>
       </div>
 
-      <!-- 載入中骨架 -->
       <div v-if="isLoading" class="text-center py-20">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
         <p class="mt-3 text-slate-500 text-sm">正在載入最新聯絡簿內容...</p>
       </div>
 
-      <!-- 四大分類內容卡片網格 (2x2 桌面佈局, 手機單欄) -->
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        <!-- 1. 作業卡片 (綠色系) -->
         <div class="card-box bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden flex flex-col">
           <div class="bg-gradient-to-r from-emerald-50 to-emerald-100/60 px-5 py-3.5 border-b border-emerald-100 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -236,7 +214,7 @@
               ✨ 目前無待辦作業，太棒了！
             </div>
             <div v-for="(item, idx) in homeworkItems" :key="item.id" class="py-3 first:pt-0 last:pb-0 flex items-start gap-3 group">
-              <!-- 序號標記 -->
+              
               <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                 {{ idx + 1 }}
               </span>
@@ -252,16 +230,12 @@
                   <span v-if="getItemDeadlineInfo(item, currentDate)" :class="getItemDeadlineInfo(item, currentDate).badgeClass" class="text-xs px-2 py-0.5 rounded-md border font-medium">
                     {{ getItemDeadlineInfo(item, currentDate).badgeText }}
                   </span>
-                  <span v-if="item.date && item.date < currentDate && item.dueDate && currentDate < item.dueDate" class="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                    📌 延續自 {{ item.date }}
-                  </span>
                 </div>
                 <p v-if="item.details" class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">
                   {{ item.details }}
                 </p>
               </div>
 
-              <!-- 管理員修改/刪除操作 -->
               <div v-if="isAdmin" class="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 no-print flex-shrink-0">
                 <button @click="openEditModal(item)" class="p-1 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded transition" title="編輯">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -274,7 +248,6 @@
           </div>
         </div>
 
-        <!-- 2. 測驗考試卡片 (藍紫色系) -->
         <div class="card-box bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col">
           <div class="bg-gradient-to-r from-indigo-50 to-indigo-100/60 px-5 py-3.5 border-b border-indigo-100 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -294,7 +267,7 @@
               🎉 今日無預定測驗或考試。
             </div>
             <div v-for="(item, idx) in examItems" :key="item.id" class="py-3 first:pt-0 last:pb-0 flex items-start gap-3 group">
-              <!-- 序號標記 -->
+              
               <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                 {{ idx + 1 }}
               </span>
@@ -309,9 +282,6 @@
                   </span>
                   <span v-if="getItemDeadlineInfo(item, currentDate)" :class="getItemDeadlineInfo(item, currentDate).badgeClass" class="text-xs px-2 py-0.5 rounded-md border font-medium">
                     {{ getItemDeadlineInfo(item, currentDate).badgeText }}
-                  </span>
-                  <span v-if="item.date && item.date < currentDate && item.dueDate && currentDate < item.dueDate" class="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
-                    📌 預告（始於 {{ item.date }}）
                   </span>
                 </div>
                 <p v-if="item.details" class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">
@@ -331,7 +301,6 @@
           </div>
         </div>
 
-        <!-- 3. 繳交項目卡片 (琥珀黃系) -->
         <div class="card-box bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden flex flex-col">
           <div class="bg-gradient-to-r from-amber-50 to-amber-100/60 px-5 py-3.5 border-b border-amber-100 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -351,7 +320,7 @@
               👍 今日無須繳交之項目。
             </div>
             <div v-for="(item, idx) in submissionItems" :key="item.id" class="py-3 first:pt-0 last:pb-0 flex items-start gap-3 group">
-              <!-- 序號標記 -->
+              
               <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                 {{ idx + 1 }}
               </span>
@@ -366,9 +335,6 @@
                   </span>
                   <span v-if="getItemDeadlineInfo(item, currentDate)" :class="getItemDeadlineInfo(item, currentDate).badgeClass" class="text-xs px-2 py-0.5 rounded-md border font-medium">
                     {{ getItemDeadlineInfo(item, currentDate).badgeText }}
-                  </span>
-                  <span v-if="item.date && item.date < currentDate && item.dueDate && currentDate < item.dueDate" class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                    📌 收件中（始於 {{ item.date }}）
                   </span>
                 </div>
                 <p v-if="item.details" class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">
@@ -388,7 +354,6 @@
           </div>
         </div>
 
-        <!-- 4. 提醒事項卡片 (玫瑰紅/橘粉色系) -->
         <div class="card-box bg-white rounded-2xl border border-rose-100 shadow-sm overflow-hidden flex flex-col">
           <div class="bg-gradient-to-r from-rose-50 to-rose-100/60 px-5 py-3.5 border-b border-rose-100 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -408,7 +373,7 @@
               ☀️ 今日無特殊注意事項。
             </div>
             <div v-for="(item, idx) in reminderItems" :key="item.id" class="py-3 first:pt-0 last:pb-0 flex items-start gap-3 group">
-              <!-- 序號標記 -->
+              
               <span class="w-6 h-6 rounded-lg bg-rose-100 text-rose-800 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                 {{ idx + 1 }}
               </span>
@@ -423,9 +388,6 @@
                   </span>
                   <span v-if="getItemDeadlineInfo(item, currentDate)" :class="getItemDeadlineInfo(item, currentDate).badgeClass" class="text-xs px-2 py-0.5 rounded-md border font-medium">
                     {{ getItemDeadlineInfo(item, currentDate).badgeText }}
-                  </span>
-                  <span v-if="item.date && item.date < currentDate && item.dueDate && currentDate < item.dueDate" class="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">
-                    📌 持續提醒（始於 {{ item.date }}）
                   </span>
                 </div>
                 <p v-if="item.details" class="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">
@@ -449,7 +411,6 @@
 
     </main>
 
-    <!-- 頁尾 -->
     <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-400 no-print">
       <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-3">
         <p>© Rhythm Byte</p>
@@ -467,8 +428,8 @@
       </div>
     </footer>
 
-    <!-- Modal 1: 新增 / 編輯項目 -->
-    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs no-print">
+    <template v-if="showEditModal">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs no-print">
       <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100">
           <h3 class="text-lg font-bold text-slate-900">
@@ -478,7 +439,7 @@
         </div>
 
         <form @submit.prevent="submitItemForm" class="mt-4 space-y-4 overflow-y-auto flex-1 pr-1">
-          <!-- 分類挑選 -->
+          
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">主要類別</label>
             <div class="grid grid-cols-4 gap-2">
@@ -534,9 +495,10 @@
         </form>
       </div>
     </div>
+    </template>
 
-    <!-- Modal 2: 班級資訊與重要公告修改 -->
-    <div v-if="showClassInfoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs no-print">
+    <template v-if="showClassInfoModal">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs no-print">
       <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100">
           <h3 class="text-lg font-bold text-slate-900">編輯班級名稱與公告</h3>
@@ -559,9 +521,10 @@
         </div>
       </div>
     </div>
+    </template>
 
-    <!-- Modal 3: Supabase 雲端與身分權限設定 -->
-    <div v-if="showConfigModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs no-print">
+    <template v-if="showConfigModal">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs no-print">
       <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
         <div class="flex justify-between items-center pb-3 border-b border-slate-100">
           <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -576,7 +539,6 @@
             資料儲存於 Supabase PostgreSQL 雲端資料庫，支援毫秒級存檔與全體設備即時同步（Realtime）。所有持通行密碼者均可秒級同步，一般訪客僅能唯讀。
           </div>
 
-          <!-- 雙層通關密碼設定 -->
           <div class="space-y-3 bg-amber-50/70 p-3.5 rounded-xl border border-amber-200">
             <div>
               <label class="block text-xs font-bold text-amber-900 mb-1">
@@ -594,7 +556,6 @@
             </div>
           </div>
 
-          <!-- Supabase 雲端資料庫設定 -->
           <div class="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -631,9 +592,8 @@
             </div>
           </div>
 
-          <!-- 產生的專屬免密碼快速網址 -->
           <div class="space-y-3 pt-2 border-t border-slate-200">
-            <!-- 1. 管理員快速免密碼連結 -->
+            
             <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-200">
               <div class="flex justify-between items-center mb-1.5">
                 <span class="text-xs font-bold text-indigo-900">👑 管理員免輸入密碼網址（解鎖所有功能）：</span>
@@ -645,7 +605,6 @@
               <p class="text-[11px] text-indigo-700 mt-1">開啟此網址將直接解鎖管理員身分，可管理公告與系統設定，建議存入個人書籤！</p>
             </div>
 
-            <!-- 2. 一般編輯快速免密碼連結 -->
             <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
               <div class="flex justify-between items-center mb-1.5">
                 <span class="text-xs font-bold text-emerald-900">✏️ 編輯通行免輸入密碼網址（編輯四類清單）：</span>
@@ -658,7 +617,6 @@
             </div>
           </div>
 
-          <!-- 離線備份 -->
           <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
             <span class="text-xs text-slate-500">備份資料：</span>
             <button @click="downloadBackup" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 transition">
@@ -668,9 +626,10 @@
         </div>
       </div>
     </div>
+    </template>
 
-    <!-- Modal 4: 密碼驗證彈窗 -->
-    <div v-if="showPasswordModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
+    <template v-if="showPasswordModal">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
       <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-150">
         <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">
           🔒
@@ -695,11 +654,12 @@
         </form>
       </div>
     </div>
+    </template>
 
-    <!-- Modal 5: 72 小時歷史版本紀錄與還原 (最高管理員專用，一般編輯無權限) -->
-    <div v-if="showLogsModal && isSuperAdmin" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
+    <template v-if="showLogsModal && isSuperAdmin">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print">
       <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
-        <!-- 彈窗標題列 -->
+        
         <div class="flex justify-between items-center pb-3 border-b border-slate-100">
           <div class="flex items-center gap-2">
             <span class="text-xl">🕒</span>
@@ -711,15 +671,13 @@
           <button @click="showLogsModal = false" class="text-slate-400 hover:text-slate-600 text-lg p-1">✕</button>
         </div>
 
-        <!-- 彈窗內容區 -->
         <div class="mt-4 overflow-y-auto flex-1 pr-1 space-y-3">
-          <!-- 載入中狀態 -->
+          
           <div v-if="isLoadingLogs" class="py-12 text-center text-slate-500 text-sm">
             <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent mb-2"></div>
             <p>正在載入歷史版本紀錄...</p>
           </div>
 
-          <!-- 資料表尚未建立提示 -->
           <div v-else-if="logsTableNotFound" class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs leading-relaxed space-y-2">
             <p class="font-bold flex items-center gap-1.5 text-sm">
               <span>⚠️</span> 雲端資料庫尚未建立 contact_book_logs 表格
@@ -730,14 +688,12 @@
             </button>
           </div>
 
-          <!-- 無紀錄狀態 -->
           <div v-else-if="logsList.length === 0" class="py-12 text-center text-slate-400 text-sm">
             <span class="text-3xl block mb-2">📭</span>
             <p>過去 72 小時內尚無修改快照紀錄。</p>
             <p class="text-xs text-slate-400 mt-1">每次點擊右上角「發布變更」時，系統均會自動在此留下歷史備份。</p>
           </div>
 
-          <!-- 歷史快照清單 -->
           <div v-else class="space-y-2.5">
             <div v-for="(log, idx) in logsList" :key="log.id" class="border border-slate-200 hover:border-slate-300 rounded-xl p-3.5 transition bg-slate-50/50 hover:bg-white">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -770,7 +726,6 @@
                 </div>
               </div>
 
-              <!-- 預覽展開區塊 -->
               <div v-if="selectedLogForPreview && selectedLogForPreview.id === log.id" class="mt-3 pt-3 border-t border-slate-200 text-xs space-y-2 bg-white p-3 rounded-lg border border-slate-100 animate-in fade-in duration-150">
                 <div class="flex justify-between items-center text-slate-500 flex-wrap gap-1">
                   <span>班級名稱：<strong class="text-slate-800">{{ log.class_title }}</strong></span>
@@ -803,7 +758,6 @@
           </div>
         </div>
 
-        <!-- 彈窗底欄 -->
         <div class="pt-3 mt-3 border-t border-slate-100 flex justify-between items-center text-xs text-slate-400">
           <span>72 小時以上紀錄由資料庫自動刪除清理</span>
           <button type="button" @click="showLogsModal = false" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">
@@ -812,8 +766,8 @@
         </div>
       </div>
     </div>
+    </template>
 
-    <!-- Toast 通知浮動提示 -->
     <div v-if="toast.show" class="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-medium transition transform translate-y-0"
          :class="{
            'bg-emerald-600': toast.type === 'success',
@@ -825,9 +779,8 @@
 
   </div>
 
-  <!-- 引入全域設定檔、Supabase 雲端模組與主程式 -->
   <script src="js/config.js"></script>
-  <script src="js/supabase-sync.js?v=20260912_2"></script>
-  <script src="js/app.js?v=20260912_2"></script>
+  <script src="js/supabase-sync.js?v=20260912_4"></script>
+  <script src="js/app.js?v=20260912_4"></script>
 </body>
 </html>

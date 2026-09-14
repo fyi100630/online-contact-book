@@ -164,6 +164,7 @@ createApp({
     const examItems = computed(() => currentRecords.value.filter((r) => r.category === 'exam'));
     const submissionItems = computed(() => currentRecords.value.filter((r) => r.category === 'submission'));
     const reminderItems = computed(() => currentRecords.value.filter((r) => r.category === 'reminder'));
+    const isToday = computed(() => currentDate.value === getTodayString());
 
     function changeDay(delta) {
       const [y, m, d] = currentDate.value.split('-').map(Number);
@@ -177,6 +178,22 @@ createApp({
 
     function goToday() {
       currentDate.value = getTodayString();
+    }
+
+    function openDatePicker() {
+      const dateInput = document.getElementById('mainDatePickerInput');
+      if (dateInput) {
+        if (typeof dateInput.showPicker === 'function') {
+          try {
+            dateInput.showPicker();
+            return;
+          } catch (e) {
+            console.warn('showPicker error:', e);
+          }
+        }
+        dateInput.focus();
+        dateInput.click();
+      }
     }
 
     async function loadData() {
@@ -705,6 +722,9 @@ createApp({
       formatDateWithWeekday,
       changeDay,
       goToday,
+      openDatePicker,
+      isToday,
+      getTodayString,
       saveAllData,
       openAddModal,
       openEditModal,

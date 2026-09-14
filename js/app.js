@@ -22,6 +22,25 @@ createApp({
 
     const classTitle = ref('班級聯絡簿');
     const announcement = ref('');
+
+    // 公告文字格式化：將包含的 http/https 網址轉換為可在新分頁點擊開啟的超連結，並做好 HTML 跳脫防範 XSS
+    const formattedAnnouncement = computed(() => {
+      if (!announcement.value) return '';
+      const escapeHtml = (str) => {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      };
+      const safe = escapeHtml(announcement.value);
+      const urlRegex = /(https?:\/\/[^\s<>，。！？（）「」『』]+)/g;
+      return safe.replace(urlRegex, (url) => {
+        const cleanUrl = url.replace(/[.,;:]+$/, '');
+        return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="text-amber-800 hover:text-amber-950 underline underline-offset-2 font-bold transition break-all inline-flex items-center gap-0.5" title="點擊在新分頁開啟連結"><span>${cleanUrl}</span><svg class="w-3.5 h-3.5 inline-block ml-0.5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg></a>`;
+      });
+    });
     const records = ref([]);
     const currentDate = ref(getTodayString());
     const viewMode = ref('daily'); 
@@ -119,11 +138,17 @@ createApp({
 
       const isContinuing = Boolean(item.date && item.date < targetDate);
 
+      // 若為同一年，精簡日期為 MM-DD，節省手機版面寬度，徹底避免登入狀態下擠壓換行
+      const currentYear = targetDate ? targetDate.slice(0, 4) : new Date().getFullYear().toString();
+      const shortDueDate = item.dueDate.startsWith(currentYear + '-')
+        ? item.dueDate.slice(5)
+        : item.dueDate;
+
       if (diff === 1) {
         return {
           status: 'tomorrow',
           daysLeft: 1,
-          badgeText: `🚨 明日截止（${item.dueDate}）`,
+          badgeText: `🚨 明日截止（${shortDueDate}）`,
           badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold animate-pulse',
           lineText: `⚠️【明日截止:${item.dueDate}】`,
           isContinuing,
@@ -132,7 +157,7 @@ createApp({
         return {
           status: 'ongoing',
           daysLeft: diff,
-          badgeText: `⏳ 期限至 ${item.dueDate}（剩 ${diff} 天）`,
+          badgeText: `⏳ 期限至 ${shortDueDate}（剩 ${diff} 天）`,
           badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
           lineText: `(期限:${item.dueDate}，剩 ${diff} 天)`,
           isContinuing,
@@ -141,7 +166,7 @@ createApp({
         return {
           status: 'expired',
           daysLeft: diff,
-          badgeText: `已截止（${item.dueDate}）`,
+          badgeText: `已截止（${shortDueDate}）`,
           badgeClass: 'bg-slate-100 text-slate-500 border-slate-200',
           lineText: `(已截止:${item.dueDate})`,
           isContinuing: false,
@@ -681,6 +706,7 @@ createApp({
     return {
       classTitle,
       announcement,
+      formattedAnnouncement,
       records,
       currentDate,
       viewMode,

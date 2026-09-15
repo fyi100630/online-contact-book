@@ -23,7 +23,6 @@ createApp({
     const classTitle = ref('班級聯絡簿');
     const announcement = ref('');
 
-    // 公告文字格式化：將包含的 http/https 網址轉換為可在新分頁點擊開啟的超連結，並做好 HTML 跳脫防範 XSS
     const formattedAnnouncement = computed(() => {
       if (!announcement.value) return '';
       const escapeHtml = (str) => {
@@ -138,7 +137,6 @@ createApp({
 
       const isContinuing = Boolean(item.date && item.date < targetDate);
 
-      // 若為同一年，精簡日期為 MM-DD，節省手機版面寬度，徹底避免登入狀態下擠壓換行
       const currentYear = targetDate ? targetDate.slice(0, 4) : new Date().getFullYear().toString();
       const shortDueDate = item.dueDate.startsWith(currentYear + '-')
         ? item.dueDate.slice(5)

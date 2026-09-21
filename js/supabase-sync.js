@@ -3,9 +3,7 @@
 const SupabaseSync = (function () {
   const STORAGE_KEY = 'contact_book_sb_config';
   const AUTH_ROLE_KEY = 'contact_book_auth_role'; 
-
-  const DEFAULT_EDITOR_PASSWORD = '6830';
-  const DEFAULT_SUPER_ADMIN_PASSWORD = '078966';
+  const AUTH_PWD_KEY = 'contact_book_auth_pwd';
 
   let cachedClient = null;
   let cachedClientUrl = '';
@@ -27,8 +25,6 @@ const SupabaseSync = (function () {
       const updated = {
         supabaseUrl: (config.supabaseUrl || '').trim(),
         supabaseAnonKey: (config.supabaseAnonKey || '').trim(),
-        editorPassword: (config.editorPassword || '').trim() || DEFAULT_EDITOR_PASSWORD,
-        superAdminPassword: (config.superAdminPassword || '').trim() || DEFAULT_SUPER_ADMIN_PASSWORD,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       
@@ -46,30 +42,15 @@ const SupabaseSync = (function () {
 
     let supabaseUrl = saved.supabaseUrl || globalCfg.supabaseUrl || '';
     let supabaseAnonKey = saved.supabaseAnonKey || globalCfg.supabaseAnonKey || '';
-    let editorPassword = saved.editorPassword || globalCfg.defaultEditorPassword || DEFAULT_EDITOR_PASSWORD;
-    let superAdminPassword = saved.superAdminPassword || globalCfg.defaultSuperAdminPassword || DEFAULT_SUPER_ADMIN_PASSWORD;
 
     let isAdminRoute = false;
     let isSuperAdmin = false;
+
     const hash = window.location.hash ? window.location.hash.slice(1).trim() : '';
-
-    if (hash) {
-      
-      if (hash === superAdminPassword || hash === DEFAULT_SUPER_ADMIN_PASSWORD) {
-        isAdminRoute = true;
-        isSuperAdmin = true;
-        setSessionAuth('super_admin');
-      } else if (hash === editorPassword || hash === DEFAULT_EDITOR_PASSWORD) {
-        isAdminRoute = true;
-        isSuperAdmin = false;
-        setSessionAuth('editor');
-      }
-
-      if (hash.includes('&')) {
-        const params = new URLSearchParams(hash);
-        if (params.has('sbUrl')) supabaseUrl = params.get('sbUrl');
-        if (params.has('sbKey')) supabaseAnonKey = params.get('sbKey');
-      }
+    if (hash && hash.includes('&')) {
+      const params = new URLSearchParams(hash);
+      if (params.has('sbUrl')) supabaseUrl = params.get('sbUrl');
+      if (params.has('sbKey')) supabaseAnonKey = params.get('sbKey');
     }
 
     const sessionRole = getSessionAuthRole();
@@ -84,33 +65,44 @@ const SupabaseSync = (function () {
     return {
       supabaseUrl,
       supabaseAnonKey,
-      editorPassword,
-      superAdminPassword,
       isAdminRoute,
       isSuperAdmin,
       isConfigured: Boolean(supabaseUrl && supabaseAnonKey),
     };
   }
 
-  function verifyPassword(inputPassword) {
+  async function verifyPassword(inputPassword) {
     if (!inputPassword) return null;
     const config = getEffectiveConfig();
-    const str = String(inputPassword).trim();
-    if (str === String(config.superAdminPassword).trim() || str === DEFAULT_SUPER_ADMIN_PASSWORD) {
-      return 'super_admin';
+    const client = getSupabaseClient(config.supabaseUrl, config.supabaseAnonKey);
+    if (!client) return null;
+
+    try {
+      const { data, error } = await client.rpc('secure_verify_password', {
+        p_password: String(inputPassword).trim(),
+      });
+      if (error || !data || !data.valid) return null;
+      if (data.role === 'SUPER_ADMIN') return 'super_admin';
+      if (data.role === 'EDITOR') return 'editor';
+      return null;
+    } catch (e) {
+      console.error('密碼驗證失敗:', e);
+      return null;
     }
-    if (str === String(config.editorPassword).trim() || str === DEFAULT_EDITOR_PASSWORD) {
-      return 'editor';
-    }
-    return null;
   }
 
-  function setSessionAuth(role) {
+  function setSessionAuth(role, password) {
     if (role) {
       sessionStorage.setItem(AUTH_ROLE_KEY, role);
+      if (password) sessionStorage.setItem(AUTH_PWD_KEY, password);
     } else {
       sessionStorage.removeItem(AUTH_ROLE_KEY);
+      sessionStorage.removeItem(AUTH_PWD_KEY);
     }
+  }
+
+  function getSessionPassword() {
+    return sessionStorage.getItem(AUTH_PWD_KEY) || '';
   }
 
   function getSessionAuthRole() {
@@ -145,14 +137,13 @@ const SupabaseSync = (function () {
   }
 
   return {
-    DEFAULT_EDITOR_PASSWORD,
-    DEFAULT_SUPER_ADMIN_PASSWORD,
     getSavedConfig,
     saveConfig,
     getEffectiveConfig,
     verifyPassword,
     setSessionAuth,
     getSessionAuthRole,
+    getSessionPassword,
 
     async testConnection(url, key) {
       const client = getSupabaseClient(url, key);
@@ -252,14 +243,7 @@ const SupabaseSync = (function () {
         throw new Error('尚未設定 Supabase 連線資訊！請點擊右上角「⚙️ 密碼／同步設定」填入 Supabase URL 與 Anon Key。');
       }
 
-      const effectiveCfg = getEffectiveConfig();
-      const sessionRole = getSessionAuthRole();
-      let password = '';
-      if (sessionRole === 'super_admin') {
-        password = effectiveCfg.superAdminPassword;
-      } else if (sessionRole === 'editor') {
-        password = effectiveCfg.editorPassword;
-      }
+      const password = getSessionPassword();
 
       const { data, error } = await client.rpc('secure_update_contact_book', {
         p_password: password,
@@ -374,12 +358,12 @@ const SupabaseSync = (function () {
 
     generateSuperAdminLink(pwd) {
       const base = window.location.origin + window.location.pathname;
-      return `${base}#${pwd || DEFAULT_SUPER_ADMIN_PASSWORD}`;
+      return `${base}#${pwd || ''}`;
     },
 
     generateEditorLink(pwd) {
       const base = window.location.origin + window.location.pathname;
-      return `${base}#${pwd || DEFAULT_EDITOR_PASSWORD}`;
+      return `${base}#${pwd || ''}`;
     },
 
     downloadBackup(dataObj) {

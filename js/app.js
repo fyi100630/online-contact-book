@@ -57,8 +57,6 @@ createApp({
     const sbConfig = reactive({
       supabaseUrl: '',
       supabaseAnonKey: '',
-      editorPassword: SupabaseSync.DEFAULT_EDITOR_PASSWORD,
-      superAdminPassword: SupabaseSync.DEFAULT_SUPER_ADMIN_PASSWORD,
     });
     const isCloudConnected = ref(false);
     const isTestingConnection = ref(false);
@@ -434,10 +432,11 @@ createApp({
       showPasswordModal.value = true;
     }
 
-    function submitPassword() {
-      const role = SupabaseSync.verifyPassword(inputPassword.value);
+    async function submitPassword() {
+      const pwd = inputPassword.value;
+      const role = await SupabaseSync.verifyPassword(pwd);
       if (role === 'super_admin') {
-        SupabaseSync.setSessionAuth('super_admin');
+        SupabaseSync.setSessionAuth('super_admin', pwd);
         isAdmin.value = true;
         isSuperAdmin.value = true;
         showPasswordModal.value = false;
@@ -446,7 +445,7 @@ createApp({
         showToast('👑 管理員驗證成功！已解鎖公告與設定功能', 'success');
         updateAdminLinks();
       } else if (role === 'editor') {
-        SupabaseSync.setSessionAuth('editor');
+        SupabaseSync.setSessionAuth('editor', pwd);
         isAdmin.value = true;
         isSuperAdmin.value = false;
         showPasswordModal.value = false;
@@ -475,10 +474,9 @@ createApp({
     const superAdminLink = ref('');
 
     function updateAdminLinks() {
-      const editorPwd = sbConfig.editorPassword || SupabaseSync.DEFAULT_EDITOR_PASSWORD;
-      const superPwd = sbConfig.superAdminPassword || SupabaseSync.DEFAULT_SUPER_ADMIN_PASSWORD;
-      simplePasswordLink.value = SupabaseSync.generateEditorLink(editorPwd);
-      superAdminLink.value = SupabaseSync.generateSuperAdminLink(superPwd);
+      const pwd = SupabaseSync.getSessionPassword();
+      simplePasswordLink.value = SupabaseSync.generateEditorLink(pwd);
+      superAdminLink.value = SupabaseSync.generateSuperAdminLink(pwd);
     }
 
     async function testSupabaseConnection() {

@@ -5,7 +5,7 @@ const SupabaseSync = (function () {
   const AUTH_ROLE_KEY = 'contact_book_auth_role'; 
 
   const DEFAULT_EDITOR_PASSWORD = '6830';
-  const DEFAULT_SUPER_ADMIN_PASSWORD = '180156';
+  const DEFAULT_SUPER_ADMIN_PASSWORD = '078966';
 
   let cachedClient = null;
   let cachedClientUrl = '';
@@ -176,11 +176,21 @@ const SupabaseSync = (function () {
 
       if (client) {
         try {
-          const { data, error } = await client
+          let { data, error } = await client
             .from('contact_book')
             .select('*')
-            .eq('id', 'default')
+            .eq('id', 'v2')
             .maybeSingle();
+
+          if (!data) {
+            const fallback = await client
+              .from('contact_book')
+              .select('*')
+              .eq('id', 'default')
+              .maybeSingle();
+            data = fallback.data;
+            error = fallback.error;
+          }
 
           if (error) {
             console.warn('從 Supabase 讀取資料失敗，嘗試降級至本機 records.json:', error);
@@ -196,21 +206,13 @@ const SupabaseSync = (function () {
               },
             };
           } else {
-            
-            const initialPayload = {
-              id: 'default',
-              class_title: '411班級聯絡簿',
-              announcement: '內測進行中',
-              records: [],
-            };
-            await client.from('contact_book').insert(initialPayload);
             return {
               success: true,
               source: 'supabase-initialized',
               data: {
-                classTitle: initialPayload.class_title,
-                announcement: initialPayload.announcement,
-                records: initialPayload.records,
+                classTitle: '411班級聯絡簿',
+                announcement: '內測進行中',
+                records: [],
               },
             };
           }
@@ -250,41 +252,23 @@ const SupabaseSync = (function () {
         throw new Error('尚未設定 Supabase 連線資訊！請點擊右上角「⚙️ 密碼／同步設定」填入 Supabase URL 與 Anon Key。');
       }
 
-      const updateData = {
-        id: 'default',
-        class_title: payload.classTitle || '班級聯絡簿',
-        announcement: payload.announcement || '',
-        records: payload.records || [],
-        updated_at: new Date().toISOString(),
-      };
+      const effectiveCfg = getEffectiveConfig();
+      const sessionRole = getSessionAuthRole();
+      let password = '';
+      if (sessionRole === 'super_admin') {
+        password = effectiveCfg.superAdminPassword;
+      } else if (sessionRole === 'editor') {
+        password = effectiveCfg.editorPassword;
+      }
 
-      const { data, error } = await client
-        .from('contact_book')
-        .upsert(updateData, { onConflict: 'id' })
-        .select();
+      const { data, error } = await client.rpc('secure_update_contact_book', {
+        p_password: password,
+        p_announcement: payload.announcement || '',
+        p_records: payload.records || [],
+      });
 
       if (error) {
         throw new Error(error.message || '儲存至 Supabase 失敗');
-      }
-
-      try {
-        const recordsArr = Array.isArray(payload.records) ? payload.records : [];
-        const hwCount = recordsArr.filter((r) => r.category === 'homework').length;
-        const examCount = recordsArr.filter((r) => r.category === 'exam').length;
-        const subCount = recordsArr.filter((r) => r.category === 'submission').length;
-        const remCount = recordsArr.filter((r) => r.category === 'reminder').length;
-        const autoSummary = summary || `作業 ${hwCount} 筆、考試 ${examCount} 筆、繳交 ${subCount} 筆、提醒 ${remCount} 筆`;
-
-        await client.from('contact_book_logs').insert({
-          class_title: updateData.class_title,
-          announcement: updateData.announcement,
-          records: updateData.records,
-          summary: autoSummary,
-          editor_role: 'admin',
-          created_at: updateData.updated_at,
-        });
-      } catch (logErr) {
-        console.warn('寫入歷史紀錄失敗（若尚未在 Supabase 執行 SQL 建立 logs 資料表請先執行）:', logErr);
       }
 
       return {
@@ -347,7 +331,7 @@ const SupabaseSync = (function () {
               event: '*',
               schema: 'public',
               table: 'contact_book',
-              filter: 'id=eq.default',
+              filter: 'id=eq.v2',
             },
             (payload) => {
               if (payload.new && typeof onUpdate === 'function') {

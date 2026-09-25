@@ -46,13 +46,29 @@ CREATE TABLE IF NOT EXISTS public.contact_book_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    class_title TEXT NOT NULL,
+    class_title TEXT DEFAULT '411班級聯絡簿',
     announcement TEXT DEFAULT '',
     records JSONB NOT NULL DEFAULT '[]'::jsonb,
     summary TEXT DEFAULT '',
     editor_role TEXT DEFAULT 'admin'
 );
 ALTER TABLE public.contact_book_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
+ALTER TABLE public.contact_book_logs ALTER COLUMN class_title DROP NOT NULL;
+ALTER TABLE public.contact_book_logs ALTER COLUMN class_title SET DEFAULT '411班級聯絡簿';
+CREATE OR REPLACE FUNCTION public.set_default_log_class_title()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.class_title IS NULL OR NEW.class_title = '' THEN
+        NEW.class_title := '411班級聯絡簿';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS trigger_set_default_log_class_title ON public.contact_book_logs;
+CREATE TRIGGER trigger_set_default_log_class_title
+BEFORE INSERT ON public.contact_book_logs
+FOR EACH ROW
+EXECUTE FUNCTION public.set_default_log_class_title();
 CREATE INDEX IF NOT EXISTS idx_contact_book_logs_created_at ON public.contact_book_logs (created_at DESC);
 ALTER TABLE public.contact_book_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public read logs" ON public.contact_book_logs;

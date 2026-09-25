@@ -45,12 +45,14 @@ END $$;
 CREATE TABLE IF NOT EXISTS public.contact_book_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     class_title TEXT NOT NULL,
     announcement TEXT DEFAULT '',
     records JSONB NOT NULL DEFAULT '[]'::jsonb,
     summary TEXT DEFAULT '',
     editor_role TEXT DEFAULT 'admin'
 );
+ALTER TABLE public.contact_book_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now());
 CREATE INDEX IF NOT EXISTS idx_contact_book_logs_created_at ON public.contact_book_logs (created_at DESC);
 ALTER TABLE public.contact_book_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public read logs" ON public.contact_book_logs;

@@ -170,18 +170,9 @@ const SupabaseSync = (function () {
           let { data, error } = await client
             .from('contact_book')
             .select('*')
-            .eq('id', 'v2')
+            .order('updated_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
-
-          if (!data) {
-            const fallback = await client
-              .from('contact_book')
-              .select('*')
-              .eq('id', 'default')
-              .maybeSingle();
-            data = fallback.data;
-            error = fallback.error;
-          }
 
           if (error) {
             console.warn('從 Supabase 讀取資料失敗，嘗試降級至本機 records.json:', error);
@@ -315,7 +306,6 @@ const SupabaseSync = (function () {
               event: '*',
               schema: 'public',
               table: 'contact_book',
-              filter: 'id=eq.v2',
             },
             (payload) => {
               if (payload.new && typeof onUpdate === 'function') {

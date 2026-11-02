@@ -87,3 +87,5 @@ export const IconShield = (p: P) => (<Svg {...p}><path d="M12 3 4.5 6v6c0 4.5 3.
 export const IconEdit = (p: P) => (<Svg {...p}><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="m13.5 6.5 4 4" /></Svg>);
 export const IconKey = (p: P) => (<Svg {...p}><circle cx="8" cy="15" r="4" /><path d="m11 12 9-9M17 6l2 2M15 8l2 2" /></Svg>);
 export const IconExternal = (p: P) => (<Svg {...p}><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></Svg>);
+export const IconGrid = (p: P) => (<Svg {...p}><rect x="3.5" y="4" width="17" height="16" rx="2" /><path d="M3.5 9.5h17M9 9.5V20M14.5 9.5V20" /></Svg>);
+export const IconPhone = (p: P) => (<Svg {...p}><rect x="6.5" y="2.5" width="11" height="19" rx="2.5" /><path d="M11 18.5h2" /></Svg>);

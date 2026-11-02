@@ -2,7 +2,10 @@ import 'server-only';
 import { db, withActor, type Actor, type Tx } from './db';
 import { HttpError } from './http';
 import { addDays, isValidDateStr, startOfWeek, todayIn, type DateStr } from '@/lib/shared/dates';
-import { CATEGORIES, type AuditRow, type BoardData, type Category, type ManagedEntry, type PublicEntry, type UserRow } from '@/lib/shared/types';
+import {
+  CATEGORIES, TIMETABLE_DAYS, TIMETABLE_PERIODS,
+  type AuditRow, type BoardData, type Category, type InstallStats, type ManagedEntry, type PublicEntry, type Timetable, type TimetableData, type UserRow,
+} from '@/lib/shared/types';
 import type { EntryInput } from '@/lib/shared/validation';
 
 export const TIMEZONE = process.env.APP_TIMEZONE || 'Asia/Taipei';
@@ -53,7 +56,7 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
   const weekStart = startOfWeek(date);
   const weekEnd = addDays(weekStart, 6);
 
-  const [settingsRows, dayRows, weekRows] = await Promise.all([
+  const [settingsRows, dayRows, weekRows, timetable] = await Promise.all([
     sql`select class_title, announcement, announcement_updated_at, content_version from app.settings where id = 1`,
     sql`
       select * from app.entries
@@ -69,6 +72,7 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
         and e.entry_date <= d::date
         and ((e.due_date is null and e.entry_date = d::date) or e.due_date > d::date)
       group by d order by d`,
+    getTimetable().then((t) => t?.schedule ?? null),
   ]);
   const s = settingsRows[0] ?? { class_title: '班級聯絡簿', announcement: '', announcement_updated_at: null, content_version: 0 };
   return {
@@ -79,6 +83,7 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
     date,
     entries: dayRows.map(toPublic),
     week: weekRows.map((r) => ({ date: r.day, count: r.count })),
+    timetable,
     version: String(s.content_version),
   };
 }
@@ -98,6 +103,74 @@ export async function updateSettings(actor: Actor, input: { classTitle: string; 
     insert into app.settings (id, class_title, announcement) values (1, ${input.classTitle}, ${input.announcement})
     on conflict (id) do update set class_title = excluded.class_title, announcement = excluded.announcement`);
   return getSettings();
+}
+
+// ---------------------------------------------------------------------
+// 課表
+// ---------------------------------------------------------------------
+/** 把資料庫裡的 jsonb 整理成固定 5×10 的字串陣列（格式不對的格子當作空的） */
+function normalizeTimetable(raw: unknown): Timetable {
+  const days = Array.isArray(raw) ? raw : [];
+  return Array.from({ length: TIMETABLE_DAYS }, (_, d) => {
+    const periods = Array.isArray(days[d]) ? (days[d] as unknown[]) : [];
+    return Array.from({ length: TIMETABLE_PERIODS }, (_, p) => (typeof periods[p] === 'string' ? (periods[p] as string) : ''));
+  });
+}
+
+/** 課表；資料庫還沒跑 db/migrations/001 時回傳 null，不讓聯絡簿整個壞掉 */
+export async function getTimetable(): Promise<TimetableData | null> {
+  try {
+    const [r] = await db()`
+      select t.schedule, t.updated_at, u.display_name as updated_by_name
+      from app.timetable t left join app.users u on u.id = t.updated_by
+      where t.id = 1`;
+    if (!r) return null;
+    return { schedule: normalizeTimetable(r.schedule), updatedAt: iso(r.updated_at), updatedByName: r.updated_by_name ?? null };
+  } catch (err) {
+    if ((err as { code?: string })?.code === '42P01') return null; // undefined_table
+    throw err;
+  }
+}
+
+export async function updateTimetable(actor: Actor, schedule: Timetable): Promise<TimetableData> {
+  await withActor(actor, async (tx) => {
+    const res = await tx`update app.timetable set schedule = ${tx.json(schedule)} where id = 1 returning id`;
+    if (res.length === 0) await tx`insert into app.timetable (id, schedule) values (1, ${tx.json(schedule)})`;
+  });
+  return (await getTimetable())!;
+}
+
+// ---------------------------------------------------------------------
+// App 安裝統計
+// ---------------------------------------------------------------------
+export async function reportInstallation(installId: string, appVersion: string): Promise<void> {
+  await db()`
+    insert into app.app_installations (install_id, app_version) values (${installId}, ${appVersion})
+    on conflict (install_id) do update set app_version = excluded.app_version, last_seen_at = now()`;
+}
+
+export async function getInstallStats(): Promise<InstallStats> {
+  const rows = await db()`
+    select app_version as version,
+           count(*)::int as total,
+           count(*) filter (where last_seen_at > now() - interval '30 days')::int as active
+    from app.app_installations
+    group by app_version`;
+  const versions = rows
+    .map((r) => ({ version: r.version as string, total: r.total as number, active30d: r.active as number }))
+    .sort((a, b) => compareVersions(b.version, a.version));
+  return {
+    total: versions.reduce((n, v) => n + v.total, 0),
+    active30d: versions.reduce((n, v) => n + v.active30d, 0),
+    versions,
+  };
+}
+
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+  return 0;
 }
 
 // ---------------------------------------------------------------------

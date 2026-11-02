@@ -309,6 +309,7 @@ function describe(log: AuditRow): string {
     return `${cat}「${d.subject ? `［${d.subject}］` : ''}${String(d.title ?? '')}」（${formatShort(String(d.entry_date ?? '2000-01-01'))}）`;
   }
   if (log.entity === 'settings') return '公告／班級名稱';
+  if (log.entity === 'timetable') return '課表';
   if (log.action === 'password_change') return '';
   return `帳號 ${String(d.display_name ?? '')}（${String(d.username ?? '')}）`;
 }

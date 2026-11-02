@@ -59,6 +59,8 @@ test('anonymous: can read board, cannot touch anything else', async () => {
     ['/api/audit', 'GET'],
     ['/api/trash', 'GET'],
     ['/api/export', 'GET'],
+    ['/api/installations', 'GET'],
+    ['/api/timetable', 'PUT', { schedule: [] }],
   ]) {
     const r = await anon.req(path, { method, body });
     assert.equal(r.status, 401, `${method} ${path} should be 401, got ${r.status}`);
@@ -136,6 +138,8 @@ test('editor: CRUD entries, optimistic locking, no admin powers', async () => {
     ['/api/settings', 'PUT', { classTitle: 'x', announcement: '' }],
     [`/api/users/${editorId}`, 'PATCH', { role: 'admin' }],
     [`/api/entries/${entry.id}/restore`, 'POST'],
+    ['/api/installations', 'GET'],
+    ['/api/timetable', 'PUT', { schedule: Array.from({ length: 5 }, () => Array(10).fill('自習')) }],
   ]) {
     const r = await editor.req(path, { method, body });
     assert.equal(r.status, 403, `editor ${method} ${path} should be 403, got ${r.status}`);
@@ -172,6 +176,56 @@ test('admin: trash restore + audit log records everything without secrets', asyn
   assert.equal(rv.status, 200);
   const board = await anon.req('/api/board?date=2026-11-03');
   assert.ok(board.json.entries.some((e) => e.title.includes('<script>')), 'reverted to pre-update title');
+});
+
+test('timetable: public read, admin-only write, strict shape, audited', async () => {
+  const pub = await anon.req('/api/timetable');
+  assert.equal(pub.status, 200);
+  assert.equal(pub.json.schedule.length, 5);
+  assert.ok(pub.json.schedule.every((d) => d.length === 10));
+  assert.ok(!('updatedByName' in pub.json), 'public timetable must not reveal who edited it');
+  const board = await anon.req('/api/board?date=2026-11-02');
+  assert.deepEqual(board.json.timetable, pub.json.schedule, 'board carries the timetable');
+
+  const next = pub.json.schedule.map((d) => [...d]);
+  next[0][0] = '健康與護理';
+  for (const bad of [
+    { schedule: next.slice(0, 4) },
+    { schedule: next.map((d) => d.slice(0, 9)) },
+    { schedule: next.map((d, i) => (i === 0 ? ['x'.repeat(11), ...d.slice(1)] : d)) },
+    { schedule: next, extra: true },
+  ]) {
+    assert.equal((await admin.req('/api/timetable', { method: 'PUT', body: bad })).status, 400);
+  }
+  const before = (await anon.req('/api/version')).json.version;
+  const r = await admin.req('/api/timetable', { method: 'PUT', body: { schedule: next } });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.schedule[0][0], '健康與護理');
+  assert.equal(r.json.updatedByName, '班長');
+  assert.notEqual((await anon.req('/api/version')).json.version, before, 'timetable change bumps content version');
+  const audit = await admin.req('/api/audit');
+  assert.ok(audit.json.logs.some((l) => l.entity === 'timetable' && l.action === 'update' && l.actorName === '班長'));
+});
+
+test('installations: anonymous report (validated), admin-only stats', async () => {
+  const id = crypto.randomUUID();
+  assert.equal((await anon.req('/api/installations', { method: 'POST', body: { installId: id, appVersion: '3.0.0' } })).status, 200);
+  assert.equal((await anon.req('/api/installations', { method: 'POST', body: { installId: id, appVersion: '3.0.1' } })).status, 200);
+  assert.equal((await anon.req('/api/installations', { method: 'POST', body: { installId: crypto.randomUUID(), appVersion: '3.0.0' } })).status, 200);
+  for (const bad of [
+    { installId: 'not-a-uuid', appVersion: '3.0.0' },
+    { installId: id, appVersion: '3.0.0; drop table' },
+    { installId: id, appVersion: '3.0.0', model: 'Pixel' },
+  ]) {
+    assert.equal((await anon.req('/api/installations', { method: 'POST', body: bad })).status, 400);
+  }
+  const noOrigin = await anon.req('/api/installations', { method: 'POST', body: { installId: id, appVersion: '3.0.0' }, origin: null });
+  assert.equal(noOrigin.status, 403, 'native app must send Origin like the web');
+  const stats = await admin.req('/api/installations');
+  assert.equal(stats.status, 200);
+  assert.equal(stats.json.total, 2);
+  assert.equal(stats.json.active30d, 2);
+  assert.deepEqual(stats.json.versions.map((v) => [v.version, v.total]), [['3.0.1', 1], ['3.0.0', 1]]);
 });
 
 test('last admin cannot be demoted or deactivated', async () => {

@@ -44,7 +44,29 @@ export type BoardData = {
   date: DateStr;
   entries: PublicEntry[];
   week: { date: DateStr; count: number }[];
+  /** 週一到週五 × 第 1～10 節；還沒設定課表（或資料庫還沒升級）時是 null */
+  timetable: Timetable | null;
   version: string;
+};
+
+/** 課表：schedule[0] 是週一，schedule[0][0] 是週一第 1 節。空字串＝沒排課 */
+export type Timetable = string[][];
+export const TIMETABLE_DAYS = 5;
+export const TIMETABLE_PERIODS = 10;
+export const TIMETABLE_CELL_MAX = 10;
+
+/** 某天（YYYY-MM-DD 的 weekday 0=日）的課；週末回傳 null */
+export function classesOn(timetable: Timetable | null, wd: number): string[] | null {
+  if (!timetable || wd < 1 || wd > 5) return null;
+  return timetable[wd - 1] ?? null;
+}
+
+export type TimetableData = { schedule: Timetable; updatedAt: string | null; updatedByName: string | null };
+
+export type InstallStats = {
+  total: number;
+  active30d: number;
+  versions: { version: string; total: number; active30d: number }[];
 };
 
 export type SessionUser = {
@@ -70,7 +92,7 @@ export type AuditRow = {
   id: string;
   at: string;
   actorName: string;
-  entity: 'entry' | 'settings' | 'user';
+  entity: 'entry' | 'settings' | 'user' | 'timetable';
   entityId: string;
   action: string;
   before: Record<string, unknown> | null;

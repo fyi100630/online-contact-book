@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isValidDateStr } from './dates';
-import { CATEGORIES } from './types';
+import { CATEGORIES, TIMETABLE_CELL_MAX, TIMETABLE_DAYS, TIMETABLE_PERIODS } from './types';
 
 const dateStr = z.string().refine(isValidDateStr, '日期格式不正確');
 const trimmed = (max: number) => z.string().trim().max(max, `最多 ${max} 個字`);
@@ -84,6 +84,26 @@ export const setupSchema = z
     username: usernameSchema,
     displayName: displayNameSchema,
     password: passwordSchema,
+  })
+  .strict();
+
+export const timetableSchema = z
+  .object({
+    schedule: z
+      .array(
+        z
+          .array(z.string().trim().max(TIMETABLE_CELL_MAX, `每一節的科目最多 ${TIMETABLE_CELL_MAX} 個字`))
+          .length(TIMETABLE_PERIODS, `每天要有 ${TIMETABLE_PERIODS} 節`),
+      )
+      .length(TIMETABLE_DAYS, `課表要有週一到週五 ${TIMETABLE_DAYS} 天`),
+  })
+  .strict();
+
+export const APP_VERSION_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+export const installationSchema = z
+  .object({
+    installId: z.uuid('安裝 ID 格式不正確'),
+    appVersion: z.string().regex(APP_VERSION_RE, '版本格式不正確'),
   })
   .strict();
 

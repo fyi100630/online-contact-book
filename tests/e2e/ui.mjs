@@ -209,6 +209,31 @@ await step('backup download + legacy import (idempotent)', async () => {
   await page.getByText('1 筆先前已匯入').waitFor();
 });
 
+await step('admin edits timetable; board shows the day and the full week', async () => {
+  await page.goto(BASE + '/manage/timetable');
+  await page.getByRole('heading', { name: '課表' }).waitFor();
+  await page.getByRole('button', { name: '週一' }).click();
+  const first = page.getByLabel('第 1 節');
+  await first.fill('健康與護理');
+  await page.getByRole('button', { name: '儲存' }).click();
+  await page.getByText('課表已更新').waitFor();
+  await page.screenshot({ path: `${SHOTS}/14-timetable-admin.png`, fullPage: true });
+  await page.goto(BASE + '/?d=2026-11-02'); // 週一
+  await page.locator('.classes-list').getByText('健康與護理').waitFor();
+  await page.getByRole('button', { name: '整週' }).click();
+  await page.locator('dialog[open] .tt').getByText('健康與護理').waitFor();
+  await page.screenshot({ path: `${SHOTS}/15-timetable-week.png` });
+  await page.keyboard.press('Escape');
+  await page.goto(BASE + '/?d=2026-11-07'); // 週六
+  await page.getByText('週末沒有課').waitFor();
+});
+
+await step('admin sees app install stats', async () => {
+  await page.goto(BASE + '/manage/app');
+  await page.getByText('安裝過的裝置').waitFor();
+  await page.screenshot({ path: `${SHOTS}/16-install-stats.png` });
+});
+
 await step('mobile layouts', async () => {
   const m = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
   const mp = await m.newPage();

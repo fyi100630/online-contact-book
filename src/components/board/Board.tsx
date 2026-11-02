@@ -8,6 +8,7 @@ import { CATEGORIES, CATEGORY_META, type BoardData, type Category, type PublicEn
 import { IconBook, IconCalendar, IconChevronLeft, IconChevronRight } from '../icons';
 import { Linkify } from '../Linkify';
 import { timeAgo, useToast } from '../ui';
+import { DayClasses } from './Timetable';
 
 const POLL_MS = 60_000;
 
@@ -127,6 +128,8 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
             {board.announcementUpdatedAt && <p className="notice-meta">{timeAgo(board.announcementUpdatedAt)}更新</p>}
           </section>
         )}
+
+        {board.timetable && <DayClasses timetable={board.timetable} wd={weekday(board.date)} />}
         </div>
 
         <section className="board-main" aria-label="當天事項">

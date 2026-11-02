@@ -245,7 +245,11 @@ declare
   v_after  jsonb;
   v_ignore text[];
 begin
-  v_entity := case tg_table_name when 'entries' then 'entry' when 'settings' then 'settings' else 'user' end;
+  v_entity := case tg_table_name
+    when 'entries' then 'entry'
+    when 'settings' then 'settings'
+    when 'timetable' then 'timetable'
+    else 'user' end;
   v_ignore := array['updated_at', 'updated_by', 'version', 'content_version', 'last_login_at', 'password_changed_at'];
 
   if tg_op = 'INSERT' then
@@ -298,6 +302,64 @@ drop trigger if exists users_audit on app.users;
 create trigger users_audit after insert or update or delete on app.users
 for each row execute function app.write_audit();
 
+-- ---------------------------------------------------------------------
+-- 課表（只有一列）：schedule = 週一到週五 × 第 1～10 節，例如
+--   [["國語文","英語文",...10 個], [...週二], [...週三], [...週四], [...週五]]
+-- 空字串＝那一節沒排課。只有管理員能改（伺服器端檢查）。
+-- ---------------------------------------------------------------------
+create table if not exists app.timetable (
+  id         int primary key default 1 check (id = 1),
+  schedule   jsonb not null,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references app.users (id) on delete set null,
+  constraint timetable_shape check (
+    jsonb_typeof(schedule) = 'array' and jsonb_array_length(schedule) = 5
+  )
+);
+
+-- 預設值：舊 App 內建的 411 班課表，之後到後台「課表」修改
+insert into app.timetable (id, schedule) values (1, '[
+  ["國語文","英語文","數學","物理","化學","生物","歷史","地理","公民","自習"],
+  ["數學","國語文","英語文","體育","資訊","美術","音樂","理化","輔導","自習"],
+  ["英語文","數學","國語文","歷史","地理","體育","班會","團體活動","自習","自習"],
+  ["國語文","物理","化學","英語文","數學","公民","體育","地科","輔導","自習"],
+  ["數學","英語文","國語文","體育","生物","歷史","社團活動","彈性課程","自習","自習"]
+]'::jsonb) on conflict (id) do nothing;
+
+create or replace function app.timetable_before_update() returns trigger
+language plpgsql as $$
+begin
+  new.id := old.id;
+  new.updated_at := now();
+  new.updated_by := app.current_actor_id();
+  return new;
+end $$;
+
+drop trigger if exists timetable_before_update on app.timetable;
+create trigger timetable_before_update before update on app.timetable
+for each row execute function app.timetable_before_update();
+
+-- 課表變動也要讓聯絡簿畫面重新整理
+drop trigger if exists timetable_bump_version on app.timetable;
+create trigger timetable_bump_version after update on app.timetable
+for each statement execute function app.bump_content_version();
+
+drop trigger if exists timetable_audit on app.timetable;
+create trigger timetable_audit after update on app.timetable
+for each row execute function app.write_audit();
+
+-- ---------------------------------------------------------------------
+-- App 安裝統計：只存 App 自己產生的隨機安裝 ID（UUID）和版本，
+-- 不存 IP、裝置型號或任何個人資料。
+-- ---------------------------------------------------------------------
+create table if not exists app.app_installations (
+  install_id    uuid primary key,
+  app_version   text not null check (app_version ~ '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'),
+  first_seen_at timestamptz not null default now(),
+  last_seen_at  timestamptz not null default now()
+);
+create index if not exists app_installations_seen_idx on app.app_installations (last_seen_at);
+
 -- 修改紀錄無論如何都不能被改或刪（就算是有權限的角色也一樣）
 create or replace function app.audit_log_immutable() returns trigger
 language plpgsql as $$
@@ -320,4 +382,6 @@ grant select, insert, delete          on app.login_attempts to contactbook_app;
 grant select, insert, update          on app.settings       to contactbook_app;
 grant select, insert, update          on app.entries        to contactbook_app;
 grant select                          on app.audit_log      to contactbook_app;
+grant select, update                  on app.timetable      to contactbook_app;
+grant select, insert, update          on app.app_installations to contactbook_app;
 grant execute on function app.current_actor_id() to contactbook_app;

@@ -6,18 +6,23 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/client/api';
 import { ROLE_LABEL, type SessionUser } from '@/lib/shared/types';
 import {
-  IconBook, IconDatabase, IconExternal, IconHistory, IconList, IconLogout, IconMegaphone, IconMenu, IconTrash, IconUser, IconUsers,
+  IconBook, IconDatabase, IconExternal, IconGrid, IconHistory, IconList, IconLogout, IconMegaphone, IconMenu, IconPhone, IconTrash, IconUser, IconUsers,
 } from '../icons';
 
 type NavItem = { href: string; label: string; icon: ReactNode; admin?: boolean };
 const NAV: NavItem[] = [
   { href: '/manage', label: '事項', icon: <IconList /> },
   { href: '/manage/announcement', label: '公告', icon: <IconMegaphone />, admin: true },
+  { href: '/manage/timetable', label: '課表', icon: <IconGrid />, admin: true },
   { href: '/manage/users', label: '帳號管理', icon: <IconUsers />, admin: true },
   { href: '/manage/activity', label: '修改紀錄', icon: <IconHistory />, admin: true },
   { href: '/manage/trash', label: '垃圾桶', icon: <IconTrash />, admin: true },
   { href: '/manage/data', label: '備份與匯入', icon: <IconDatabase />, admin: true },
+  { href: '/manage/app', label: 'App 安裝統計', icon: <IconPhone />, admin: true },
 ];
+
+/** 放在「內容」區的管理員項目 */
+const CONTENT_ADMIN = new Set(['/manage/announcement', '/manage/timetable']);
 
 export function Shell({ user, classTitle, children }: { user: SessionUser; classTitle: string; children: ReactNode }) {
   const pathname = usePathname();
@@ -58,9 +63,9 @@ export function Shell({ user, classTitle, children }: { user: SessionUser; class
         {!locked && (
           <>
             <p className="nav-label">內容</p>
-            {items.filter((n) => !n.admin || n.href === '/manage/announcement').map(link)}
+            {items.filter((n) => !n.admin || CONTENT_ADMIN.has(n.href)).map(link)}
             {user.role === 'admin' && <p className="nav-label">管理</p>}
-            {items.filter((n) => n.admin && n.href !== '/manage/announcement').map(link)}
+            {items.filter((n) => n.admin && !CONTENT_ADMIN.has(n.href)).map(link)}
           </>
         )}
         <p className="nav-label">個人</p>

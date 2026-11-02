@@ -437,3 +437,35 @@ button.nav-link { border: 0; background: none; width: 100%; text-align: left; }
   .sheet:only-child { grid-column: 1 / -1; }
   .sheets .sheet { margin-top: 16px; }
 }
+
+/* =====================================================================
+   課表：首頁顯示當天的課（一行五節），整週課表用表格
+   ===================================================================== */
+.classes-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.classes-title { font-size: 15px; font-weight: 700; margin: 0; }
+.classes-none { font-size: 14px; color: var(--ink-3); }
+.classes-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.classes-list li { display: flex; flex-direction: column; gap: 1px; padding: 7px 4px 7px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.classes-no { font-size: 11px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.classes-name { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.35; }
+.classes-list li.is-empty .classes-name { color: var(--ink-3); font-weight: 400; }
+
+.tt-wrap { overflow-x: auto; }
+.tt { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+.tt th, .tt td { padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; line-height: 1.35; }
+.tt thead th { font-size: 13px; font-weight: 700; color: var(--ink-3); border-bottom: 2px solid var(--ink); }
+.tt .tt-no { width: 2.4em; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.tt td { font-weight: 600; }
+.tt thead th.is-on { color: var(--primary); }
+.tt td.is-on { background: var(--primary-soft); }
+
+/* 後台：課表編輯 */
+.tt-days { grid-template-columns: repeat(5, 1fr); }
+.tt-edit { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px 12px; align-items: center; }
+.tt-edit .field-label { margin: 0; }
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.stat { padding: 16px 18px; }
+.stat-num { font-size: 32px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 13px; color: var(--ink-3); margin-top: 4px; }
+.tt-row { display: contents; }
+.gap-top { margin-top: 16px; }

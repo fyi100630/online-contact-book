@@ -274,16 +274,17 @@ dialog.drawer .dialog-inner { min-height: 100%; }
 /* =====================================================================
    登入 / 設定
    ===================================================================== */
-.auth { min-height: 100dvh; display: grid; grid-template-columns: 1fr 1fr; }
-.auth-side { background: var(--primary); color: var(--primary-ink); padding: 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
-.auth-side h1 { font-size: 34px; font-weight: 800; }
-.auth-side p { opacity: 0.85; max-width: 380px; }
-.auth-points { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
-.auth-points li { display: flex; gap: 10px; align-items: center; }
-.auth-main { display: grid; place-items: center; padding: 32px 20px; }
-.auth-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 20px; }
-.auth-card h2 { font-size: 24px; font-weight: 800; }
-.auth-back { font-size: 14px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 4px; }
+.auth { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px 16px; }
+.auth-card { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 24px; }
+.auth-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.auth-brand .brand-mark { width: 44px; height: 44px; border-radius: 12px; }
+.auth-brand .brand-mark .icon { width: 22px; height: 22px; }
+.auth-brand h1 { font-size: 22px; font-weight: 800; }
+.auth-card h2 { font-size: 18px; font-weight: 700; }
+.auth-back { font-size: 14px; color: var(--ink-3); }
+@media (min-width: 600px) {
+  .auth-card { padding: 36px 32px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+}
 
 /* =====================================================================
    管理後台
@@ -372,8 +373,6 @@ dialog.drawer .dialog-inner { min-height: 100%; }
   .mobile-bar { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 30; height: 56px; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
   .mobile-bar .brand-name { font-size: 15px; }
   .main { padding: 20px 16px 64px; }
-  .auth { grid-template-columns: minmax(0, 1fr); }
-  .auth-side { display: none; }
 }
 @media (max-width: 600px) {
   body { font-size: 15px; }
@@ -420,3 +419,21 @@ dialog.drawer .dialog-inner { min-height: 100%; }
 }
 
 button.nav-link { border: 0; background: none; width: 100%; text-align: left; }
+
+/* =====================================================================
+   電腦版聯絡簿：左邊日期、週曆、公告（捲動時固定），右邊事項排成兩欄
+   ===================================================================== */
+.board-side { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.board-main { min-width: 0; }
+@media (min-width: 1024px) {
+  .board-top-inner { max-width: 1240px; }
+  .board { max-width: 1240px; display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 56px; align-items: start; padding-top: 36px; }
+  .board-side { position: sticky; top: 96px; max-height: calc(100dvh - 120px); overflow-y: auto; }
+  .hero-actions { margin-left: 0; }
+}
+/* 螢幕夠寬時，右邊事項才分成兩欄，避免標題被擠到斷行 */
+@media (min-width: 1280px) {
+  .sheets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 36px; align-items: start; }
+  .sheet:only-child { grid-column: 1 / -1; }
+  .sheets .sheet { margin-top: 16px; }
+}

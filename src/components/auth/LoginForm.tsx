@@ -34,10 +34,6 @@ export function LoginForm({ next }: { next: string | null }) {
 
   return (
     <form className="form-stack" onSubmit={submit} noValidate>
-      <div>
-        <h2>登入</h2>
-        <p className="muted">使用管理員給你的帳號密碼</p>
-      </div>
       {error && <div className="alert alert-danger" role="alert"><IconAlert /> {error}</div>}
       <Field label="帳號">
         <input className="input" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false}
@@ -48,7 +44,6 @@ export function LoginForm({ next }: { next: string | null }) {
           value={password} onChange={(e) => setPassword(e.target.value)} maxLength={256} />
       </Field>
       <button className="btn btn-primary btn-block" disabled={busy}>{busy ? '登入中…' : '登入'}</button>
-      <p className="field-hint">忘記密碼請找管理員重設。連續輸錯 5 次會暫停 15 分鐘。</p>
     </form>
   );
 }

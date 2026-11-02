@@ -1,30 +1,19 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { IconBook, IconChevronLeft, IconHistory, IconRestore, IconShield } from '../icons';
+import { IconBook } from '../icons';
 
+/** 登入、初次設定共用：畫面正中間一個框，只寫「管理後台」 */
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="auth">
-      <aside className="auth-side">
-        <div className="brand">
+    <main className="auth">
+      <div className="auth-card">
+        <div className="auth-brand">
           <span className="brand-mark"><IconBook /></span>
+          <h1>管理後台</h1>
         </div>
-        <div>
-          <h1>幹部與小老師專區</h1>
-          <p>登入後可以登記作業、考試、繳交與提醒事項。帳號由管理員建立，請勿借給他人使用。</p>
-        </div>
-        <ul className="auth-points">
-          <li><IconShield /> 每個人都有自己的帳號</li>
-          <li><IconHistory /> 每一次修改都會留下紀錄</li>
-          <li><IconRestore /> 刪掉的內容可以還原</li>
-        </ul>
-      </aside>
-      <main className="auth-main">
-        <div className="auth-card">
-          <Link href="/" className="auth-back"><IconChevronLeft size="sm" /> 回到聯絡簿</Link>
-          {children}
-        </div>
-      </main>
-    </div>
+        {children}
+      </div>
+      <Link href="/" className="auth-back">回到聯絡簿</Link>
+    </main>
   );
 }

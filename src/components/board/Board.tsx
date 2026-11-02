@@ -98,6 +98,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
       </header>
 
       <main className="board">
+        <div className="board-side">
         <section className="hero" aria-live="polite">
           <h1 className="hero-date">
             <span className="hero-day">{dayOfMonth}</span>
@@ -126,8 +127,9 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
             {board.announcementUpdatedAt && <p className="notice-meta">{timeAgo(board.announcementUpdatedAt)}更新</p>}
           </section>
         )}
+        </div>
 
-        <section aria-label="當天事項">
+        <section className="board-main" aria-label="當天事項">
             <div className="filters" role="toolbar" aria-label="篩選類別">
               <button className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
                 全部 <span className="chip-count">{board.entries.length}</span>
@@ -145,7 +147,8 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
                 <p>用上面的週曆看看其他天</p>
               </div>
             ) : (
-              (filter === 'all' ? CATEGORIES.filter((c) => counts[c] > 0) : [filter]).map((c) => (
+              <div className="sheets">
+              {(filter === 'all' ? CATEGORIES.filter((c) => counts[c] > 0) : [filter]).map((c) => (
                 <section key={c} className="sheet" aria-labelledby={`sheet-${c}`}>
                   <h2 id={`sheet-${c}`} className="sheet-head">
                     {CATEGORY_META[c].label}
@@ -155,7 +158,8 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
                     {shown.filter((e) => e.category === c).map((e) => <EntryRow key={e.id} entry={e} day={board.date} />)}
                   </ul>
                 </section>
-              ))
+              ))}
+              </div>
             )}
         </section>
       </main>

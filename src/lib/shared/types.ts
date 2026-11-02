@@ -3,11 +3,11 @@ import type { DateStr } from './dates';
 export const CATEGORIES = ['homework', 'exam', 'submission', 'reminder'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-export const CATEGORY_META: Record<Category, { label: string; short: string; lineTitle: string; emoji: string }> = {
-  homework: { label: '作業', short: '作業', lineTitle: '作業', emoji: '📝' },
-  exam: { label: '考試・評量', short: '考試', lineTitle: '測驗考試', emoji: '📋' },
-  submission: { label: '繳交', short: '繳交', lineTitle: '繳交項目', emoji: '📦' },
-  reminder: { label: '提醒', short: '提醒', lineTitle: '提醒事項', emoji: '🔔' },
+export const CATEGORY_META: Record<Category, { label: string; short: string }> = {
+  homework: { label: '作業', short: '作業' },
+  exam: { label: '考試・評量', short: '考試' },
+  submission: { label: '繳交', short: '繳交' },
+  reminder: { label: '提醒', short: '提醒' },
 };
 
 export type Role = 'admin' | 'editor';

@@ -1,68 +1,71 @@
 /* =====================================================================
-   設計系統：紙本手帳風格（暖白紙面 + 墨藍）
+   設計系統：Flat Design（扁平、清爽）＋ 青綠色系
+   參考 ui-ux-pro-max 對「學生任務／行事曆類工具」的建議，
+   顏色都經過 WCAG 對比檢查：一般文字在亮色、暗色模式下都 ≥ 4.5:1。
    ===================================================================== */
 :root {
-  --bg: #f5f3ee;
-  --bg-2: #efece4;
+  --bg: #f4faf9;
+  --bg-2: #e8f1ef;
   --surface: #ffffff;
-  --surface-2: #faf9f6;
-  --ink: #1b2130;
-  --ink-2: #4a5263;
-  --ink-3: #8a909c;
-  --line: #e4e0d6;
-  --line-2: #d6d1c4;
-  --primary: #2c45a8;
+  --surface-2: #f7fbfa;
+  --ink: #134e4a;
+  --ink-2: #3f5f5c;
+  --ink-3: #5f7471;
+  --line: #d9e8e5;
+  --line-2: #bcd5d0;
+  --primary: #0f766e;
   --primary-ink: #ffffff;
-  --primary-soft: #e9edfb;
-  --danger: #c23b48;
-  --danger-soft: #fbeaec;
-  --warn: #a8650b;
-  --warn-soft: #fbf1e1;
-  --ok: #19825f;
-  --ok-soft: #e4f4ed;
-  --c-homework: #138a66;
-  --c-exam: #6a4fd3;
-  --c-submission: #b8700c;
-  --c-reminder: #cc3f55;
+  --primary-soft: #ddf3ef;
+  --accent: #c2410c;
+  --danger: #b42318;
+  --danger-soft: #feeceb;
+  --warn: #9a4a07;
+  --warn-soft: #fef3e2;
+  --ok: #0f766e;
+  --ok-soft: #ddf3ef;
+  --c-homework: #2563eb;
+  --c-exam: #7c3aed;
+  --c-submission: #c2410c;
+  --c-reminder: #be185d;
   --radius-sm: 8px;
-  --radius: 14px;
-  --radius-lg: 20px;
-  --shadow-sm: 0 1px 2px rgba(27, 33, 48, 0.06);
-  --shadow: 0 1px 2px rgba(27, 33, 48, 0.05), 0 8px 24px rgba(27, 33, 48, 0.06);
-  --shadow-lg: 0 24px 64px rgba(27, 33, 48, 0.22);
-  /* 思源黑體打包在網站裡，所有裝置看到一樣的字型（不會變成新細明體） */
-  --font: 'Noto Sans TC Variable', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', sans-serif;
+  --radius: 12px;
+  --radius-lg: 18px;
+  /* Flat：一般元件不用陰影，只靠邊框和底色區分層次；對話框保留陰影以和背景分開 */
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-lg: 0 20px 50px rgba(9, 38, 36, 0.22);
+  /* 英文、數字用 Plus Jakarta Sans，中文用思源黑體；都打包在網站裡，不會變成新細明體 */
+  --font: 'Plus Jakarta Sans Variable', 'Noto Sans TC Variable', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121418;
-    --bg-2: #171a1f;
-    --surface: #1c1f25;
-    --surface-2: #20242b;
-    --ink: #eceef2;
-    --ink-2: #b5bac4;
-    --ink-3: #7e8592;
-    --line: #2c3038;
-    --line-2: #3a3f49;
-    --primary: #8ea2ff;
-    --primary-ink: #0f1220;
-    --primary-soft: #232b4d;
-    --danger: #ff7b88;
-    --danger-soft: #3a1e23;
-    --warn: #f0b45a;
-    --warn-soft: #362a17;
-    --ok: #5fd3a6;
-    --ok-soft: #173229;
-    --c-homework: #4fd1a5;
-    --c-exam: #a995ff;
-    --c-submission: #f0b45a;
-    --c-reminder: #ff7f93;
-    --shadow-sm: none;
-    --shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
-    --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
+    --bg: #0e1615;
+    --bg-2: #131d1c;
+    --surface: #16201f;
+    --surface-2: #1b2726;
+    --ink: #e6f2f0;
+    --ink-2: #a9c2be;
+    --ink-3: #88a19d;
+    --line: #263533;
+    --line-2: #344744;
+    --primary: #2dd4bf;
+    --primary-ink: #04201e;
+    --primary-soft: #123a36;
+    --accent: #fb9a5b;
+    --danger: #ff8a80;
+    --danger-soft: #3a1d1b;
+    --warn: #f7b267;
+    --warn-soft: #33260f;
+    --ok: #2dd4bf;
+    --ok-soft: #123a36;
+    --c-homework: #7aa7ff;
+    --c-exam: #b79bff;
+    --c-submission: #fb9a5b;
+    --c-reminder: #f58fb8;
+    --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.6);
     color-scheme: dark;
   }
 }
@@ -207,6 +210,8 @@ dialog.drawer .dialog-inner { min-height: 100%; }
 .board { max-width: 1120px; margin: 0 auto; padding: 24px 20px 64px; display: flex; flex-direction: column; gap: 20px; }
 .date-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .date-kicker { font-size: 13px; font-weight: 600; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
+.spinner-slot { display: inline-flex; width: 14px; height: 14px; }
+.spinner-slot .spinner { width: 14px; height: 14px; border-width: 2px; }
 .date-title { font-size: 30px; font-weight: 800; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; }
 .date-title small { font-size: 16px; font-weight: 600; color: var(--ink-2); }
 .date-actions { display: flex; gap: 6px; align-items: center; }
@@ -429,6 +434,15 @@ dialog.drawer .dialog-inner { min-height: 100%; }
   .table td:first-child { flex-basis: 100%; font-size: 16px; }
   .table td:last-child { flex-basis: 100%; }
   .table td:nth-child(5)::before { content: '最後登入 '; }
+}
+
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .btn-sm, .chip, .segmented button { min-height: 40px; }
+  .btn-icon.btn-sm { width: 40px; }
+  .btn-icon { width: 44px; }
+  .nav-link { height: 44px; }
+  .week-nav { min-width: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

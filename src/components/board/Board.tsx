@@ -111,7 +111,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
           <div>
             <p className="date-kicker">
               <IconCalendar size="sm" /> {board.date.slice(0, 4)} 年 ・ {relative}
-              {loading && <span className="spinner" aria-label="載入中" />}
+              <span className="spinner-slot">{loading && <span className="spinner" role="status" aria-label="載入中" />}</span>
             </p>
             <h1 className="date-title">{formatLong(board.date)}</h1>
           </div>

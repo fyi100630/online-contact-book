@@ -102,12 +102,12 @@ export function EntriesPage({ today }: { today: DateStr }) {
                   </span>
                   <span className="list-main">
                     <span className="list-title">
-                      {e.priority === 'high' && '⭐ '}
                       {e.subject && `［${e.subject}］`}
                       {e.title}
                     </span>
                     <span className="list-meta">
                       <span className="badge badge-cat">{CATEGORY_META[e.category].short}</span>
+                      {e.priority === 'high' && <span className="badge badge-danger">重要</span>}
                       {dl && <span className={`due due-${dl.tone}`}>{dl.label}</span>}
                       <span>{e.updatedByName ?? '—'} ・ {timeAgo(e.updatedAt)}</span>
                     </span>

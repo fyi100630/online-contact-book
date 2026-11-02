@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@/components/ui';
+import '@fontsource-variable/plus-jakarta-sans';
 import '@fontsource-variable/noto-sans-tc';
 import './globals.css';
 
@@ -16,8 +17,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f3ee' },
-    { media: '(prefers-color-scheme: dark)', color: '#121418' },
+    { media: '(prefers-color-scheme: light)', color: '#f4faf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0e1615' },
   ],
 };
 

@@ -96,7 +96,12 @@
 
 1. **新的** Supabase 專案 → SQL Editor → 貼上 [`db/migrations/001_timetable_installations.sql`](../db/migrations/001_timetable_installations.sql) 整份執行（可以重複執行）。
 2. 部署新版網站。
-3. 後台 → **課表**：預設是舊 App 內建的課表，請確認或修改。
+3. 把舊 App 的課表搬過來：
+   1. **舊的** Supabase 專案 → SQL Editor → 執行 [`db/legacy/02_export_timetable.sql`](../db/legacy/02_export_timetable.sql)（只讀）。
+   2. 結果是一行 `update app.timetable ...`，整格複製。
+   3. **新的** Supabase 專案 → SQL Editor → 貼上執行。
+   4. 打開聯絡簿首頁確認課表。舊 App 的「簡稱」（例如「健康與護理｜護」的「護」）不會搬，新版只顯示全名。
+4. 後台 → **課表**：之後要改就在這裡改。
 
 > 還沒跑第 1 步之前，網站照常運作，只是不會顯示課表、App 安裝統計會讀取失敗。
 

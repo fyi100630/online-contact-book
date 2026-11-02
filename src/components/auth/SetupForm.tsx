@@ -42,7 +42,7 @@ export function SetupForm() {
       <Field label="顯示名稱" hint="修改紀錄會顯示這個名字">
         <input className="input" value={form.displayName} onChange={set('displayName')} maxLength={30} />
       </Field>
-      <Field label="密碼" hint="至少 10 個字元">
+      <Field label="密碼" hint="最多 128 個字元，數字、英文或符號都可以">
         <input className="input" type="password" autoComplete="new-password" value={form.password} onChange={set('password')} />
       </Field>
       <Field label="再輸入一次密碼">

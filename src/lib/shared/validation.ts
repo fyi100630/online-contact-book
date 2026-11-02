@@ -11,9 +11,10 @@ export const usernameSchema = z
   .toLowerCase()
   .regex(/^[a-z0-9][a-z0-9._-]{2,31}$/, '帳號只能用小寫英文、數字和 . _ -，長度 3～32 字，開頭要是英文或數字');
 
+// 密碼不限制字元種類與最短長度，只要求不能是空的，並設定上限避免超長輸入。
 export const passwordSchema = z
   .string()
-  .min(10, '密碼至少 10 個字元')
+  .min(1, '請輸入密碼')
   .max(128, '密碼最多 128 個字元');
 
 export const displayNameSchema = trimmed(30).min(1, '請輸入名稱');

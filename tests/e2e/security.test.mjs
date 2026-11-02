@@ -105,8 +105,10 @@ test('editor must change temp password before doing anything', async () => {
   const blocked = await editor.req('/api/entries');
   assert.equal(blocked.status, 403);
   assert.equal(blocked.json.code, 'must_change_password');
-  const weak = await editor.req('/api/account/password', { method: 'POST', body: { currentPassword: editorPw, newPassword: 'short' } });
-  assert.equal(weak.status, 400);
+  const empty = await editor.req('/api/account/password', { method: 'POST', body: { currentPassword: editorPw, newPassword: '' } });
+  assert.equal(empty.status, 400);
+  const tooLong = await editor.req('/api/account/password', { method: 'POST', body: { currentPassword: editorPw, newPassword: 'x'.repeat(129) } });
+  assert.equal(tooLong.status, 400);
   const ok = await editor.req('/api/account/password', { method: 'POST', body: { currentPassword: editorPw, newPassword: 'blue-river-stone-42' } });
   assert.equal(ok.status, 200);
   const now = await editor.req('/api/entries');

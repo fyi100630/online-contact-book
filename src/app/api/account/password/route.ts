@@ -19,7 +19,6 @@ export const POST = handle(async (req: NextRequest) => {
     await recordLoginAttempt(user.username, ip, false);
     return fail(400, '目前的密碼不正確', 'wrong_password');
   }
-  if (newPassword.toLowerCase().includes(user.username)) return fail(400, '密碼不能包含帳號名稱', 'validation');
 
   await setPassword(actor, user.id, await hashPassword(newPassword), false);
   await destroyUserSessions(user.id, true); // 其他裝置全部登出，保留目前這台

@@ -28,7 +28,7 @@ export function AccountPage({ user }: { user: SessionUser }) {
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwError('');
-    if (pw.next.length < 10) return setPwError('新密碼至少 10 個字元');
+    if (pw.next.length === 0) return setPwError('請輸入新密碼');
     if (pw.next !== pw.confirm) return setPwError('兩次輸入的新密碼不一樣');
     setBusy(true);
     try {
@@ -77,7 +77,7 @@ export function AccountPage({ user }: { user: SessionUser }) {
           <Field label={forced ? '臨時密碼' : '目前的密碼'}>
             <input className="input" type="password" autoComplete="current-password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
           </Field>
-          <Field label="新密碼" hint="至少 10 個字元。建議用一句好記的話，例如「我家的貓叫小花2026」。">
+          <Field label="新密碼" hint="最多 128 個字元，數字、英文或符號都可以">
             <input className="input" type="password" autoComplete="new-password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
           </Field>
           <Field label="再輸入一次新密碼">

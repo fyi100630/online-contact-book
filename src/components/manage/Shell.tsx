@@ -68,12 +68,8 @@ export function Shell({ user, classTitle, children }: { user: SessionUser; class
         <Link href="/" className="nav-link"><IconExternal /> 查看聯絡簿</Link>
         <div className="sidebar-foot">
           <div className="me">
-            <span className="avatar" aria-hidden="true">{user.displayName.slice(0, 1)}</span>
-            <span>
-              <span className="me-name">{user.displayName}</span>
-              <br />
-              <span className="me-role">{user.username}，{ROLE_LABEL[user.role]}</span>
-            </span>
+            <span className="me-name">{user.displayName}</span>
+            <span className="me-role">{user.username}，{ROLE_LABEL[user.role]}</span>
           </div>
           <button className="nav-link btn-ghost" onClick={logout}><IconLogout /> 登出</button>
         </div>

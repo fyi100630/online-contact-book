@@ -296,8 +296,7 @@ dialog.drawer .dialog-inner { min-height: 100%; }
 .nav-link:hover { background: var(--bg-2); color: var(--ink); text-decoration: none; }
 .nav-link[aria-current='page'] { background: var(--primary-soft); color: var(--primary); }
 .sidebar-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 4px; }
-.me { display: flex; align-items: center; gap: 10px; padding: 6px 8px; }
-.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
+.me { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; min-width: 0; }
 .me-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .me-role { font-size: 12px; color: var(--ink-3); }
 .mobile-bar { display: none; }

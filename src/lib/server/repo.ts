@@ -62,13 +62,15 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
         and entry_date <= ${date}
         and ((due_date is null and entry_date = ${date}) or (due_date > ${date}))
       order by (priority = 'high') desc, due_date nulls last, created_at`,
+    // count：當天要顯示的事項數；due：當天到期（要交、要考）的事項數，給週曆上色用
     sql`
-      select d::date::text as day, count(e.id)::int as count
+      select d::date::text as day,
+        (count(e.id) filter (where (e.due_date is null and e.entry_date = d::date) or e.due_date > d::date))::int as count,
+        (count(e.id) filter (where e.due_date = d::date))::int as due
       from generate_series(${weekStart}::date, ${weekEnd}::date, interval '1 day') d
       left join app.entries e
         on e.deleted_at is null
         and e.entry_date <= d::date
-        and ((e.due_date is null and e.entry_date = d::date) or e.due_date > d::date)
       group by d order by d`,
     sql`
       select * from app.entries
@@ -84,7 +86,7 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
     today: today(),
     date,
     entries: dayRows.map(toPublic),
-    week: weekRows.map((r) => ({ date: r.day, count: r.count })),
+    week: weekRows.map((r) => ({ date: r.day, count: r.count, due: r.due })),
     upcoming: upcomingRows.map(toPublic),
     version: String(s.content_version),
   };

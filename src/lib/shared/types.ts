@@ -43,7 +43,7 @@ export type BoardData = {
   today: DateStr;
   date: DateStr;
   entries: PublicEntry[];
-  week: { date: DateStr; count: number }[];
+  week: { date: DateStr; count: number; due: number }[];
   upcoming: PublicEntry[];
   version: string;
 };

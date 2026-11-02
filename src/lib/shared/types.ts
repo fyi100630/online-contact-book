@@ -11,7 +11,7 @@ export const CATEGORY_META: Record<Category, { label: string; short: string }> =
 };
 
 export type Role = 'admin' | 'editor';
-export const ROLE_LABEL: Record<Role, string> = { admin: '管理員', editor: '幹部' };
+export const ROLE_LABEL: Record<Role, string> = { admin: '管理員', editor: '幹部與小老師' };
 
 /** 公開看得到的事項欄位（不含任何帳號資訊） */
 export type PublicEntry = {
@@ -25,7 +25,7 @@ export type PublicEntry = {
   priority: 'normal' | 'high';
 };
 
-/** 幹部後台看到的事項（多了版本與編輯者資訊） */
+/** 幹部與小老師在後台看到的事項（多了版本與編輯者資訊） */
 export type ManagedEntry = PublicEntry & {
   version: number;
   createdAt: string;

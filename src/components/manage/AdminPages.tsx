@@ -231,7 +231,7 @@ function CreateUserForm({ onCreated }: { onCreated: (username: string, password:
       </Field>
       <Field label="角色">
         <select className="select" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-          <option value="editor">幹部：可以新增、修改、刪除事項</option>
+          <option value="editor">幹部與小老師：可以新增、修改、刪除事項</option>
           <option value="admin">管理員：另外可以管理帳號、公告、紀錄與還原</option>
         </select>
       </Field>

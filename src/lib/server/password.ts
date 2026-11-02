@@ -45,7 +45,7 @@ export async function burnPasswordCheck(password: string): Promise<void> {
   await verifyPassword(password, await dummyHash);
 }
 
-/** 產生管理員發給幹部的臨時密碼：易讀、不含容易混淆的字元，約 71 bits 熵 */
+/** 產生管理員發給幹部與小老師的臨時密碼：易讀、不含容易混淆的字元，約 71 bits 熵 */
 export function generateTempPassword(): string {
   const alphabet = 'abcdefghjkmnpqrstuvwxyzACDEFGHJKLMNPQRTUVWXY34679';
   const groups: string[] = [];

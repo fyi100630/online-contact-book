@@ -10,7 +10,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           <span className="brand-mark"><IconBook /></span>
         </div>
         <div>
-          <h1>幹部專區</h1>
+          <h1>幹部與小老師專區</h1>
           <p>登入後可以登記作業、考試、繳交與提醒事項。帳號由管理員建立，請勿借給他人使用。</p>
         </div>
         <ul className="auth-points">

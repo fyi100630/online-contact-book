@@ -8,9 +8,10 @@
   --bg-2: #e8f1ef;
   --surface: #ffffff;
   --surface-2: #f7fbfa;
-  --ink: #134e4a;
-  --ink-2: #3f5f5c;
-  --ink-3: #5f7471;
+  /* 文字一律用中性黑灰色，青綠色只用在按鈕、選取狀態、連結等重點 */
+  --ink: #1a1d21;
+  --ink-2: #4b5563;
+  --ink-3: #636b75;
   --line: #d9e8e5;
   --line-2: #bcd5d0;
   --primary: #0f766e;
@@ -46,9 +47,9 @@
     --bg-2: #131d1c;
     --surface: #16201f;
     --surface-2: #1b2726;
-    --ink: #e6f2f0;
-    --ink-2: #a9c2be;
-    --ink-3: #88a19d;
+    --ink: #ececec;
+    --ink-2: #b8bdc4;
+    --ink-3: #949ba3;
     --line: #263533;
     --line-2: #344744;
     --primary: #2dd4bf;

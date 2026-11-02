@@ -39,28 +39,29 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  /* 深灰底（類似 Android 系統設定），文字用柔和的淺灰，不刺眼 */
   :root {
-    --bg: #000000;
-    --bg-2: #1c1c1e;
-    --surface: #141414;
-    --surface-2: #1a1a1a;
-    --ink: #f2f2f2;
-    --ink-2: #c9ccd1;
-    --ink-3: #9aa0a7;
-    --line: #2a2b2f;
-    --line-2: #3a3c41;
-    --primary: #8fb0ff;
+    --bg: #1f1f1f;
+    --bg-2: #323232;
+    --surface: #2a2a2a;
+    --surface-2: #2f2f2f;
+    --ink: #e3e3e3;
+    --ink-2: #c4c7c5;
+    --ink-3: #a3a7ab;
+    --line: #3a3a3a;
+    --line-2: #4a4a4a;
+    --primary: #9fbcff;
     --primary-ink: #0b1530;
-    --primary-soft: #18223d;
-    --red: #ff7a6e;
-    --red-soft: #3a1714;
-    --danger: #ff7a6e;
-    --danger-soft: #3a1714;
+    --primary-soft: #26324f;
+    --red: #ff8a80;
+    --red-soft: #46211e;
+    --danger: #ff8a80;
+    --danger-soft: #46211e;
     --warn: #f2b65a;
-    --warn-soft: #2e2410;
-    --ok: #8fb0ff;
-    --ok-soft: #18223d;
-    --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.7);
+    --warn-soft: #3a2f1a;
+    --ok: #9fbcff;
+    --ok-soft: #26324f;
+    --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 }

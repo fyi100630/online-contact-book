@@ -72,7 +72,7 @@ export function Shell({ user, classTitle, children }: { user: SessionUser; class
             <span>
               <span className="me-name">{user.displayName}</span>
               <br />
-              <span className="me-role">{ROLE_LABEL[user.role]} ・ {user.username}</span>
+              <span className="me-role">{user.username}，{ROLE_LABEL[user.role]}</span>
             </span>
           </div>
           <button className="nav-link btn-ghost" onClick={logout}><IconLogout /> 登出</button>

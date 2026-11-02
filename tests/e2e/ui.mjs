@@ -104,22 +104,22 @@ await step('admin creates an editor and sees one-time password', async () => {
 
 await step('public board shows entries, announcement, week strip, upcoming', async () => {
   await page.goto(BASE + '/');
-  await page.locator('.items').getByText('習作 p.12～15').waitFor();
-  await page.locator('.items').getByText('第一次段考 ch1–3').waitFor();
+  await page.locator('.rows').getByText('習作 p.12～15').waitFor();
+  await page.locator('.rows').getByText('第一次段考 ch1–3').waitFor();
   await page.locator('.notice a[href="https://example.com/range"]').waitFor();
-  await page.getByText('明天截止').first().waitFor();
-  await page.getByText('接下來兩週截止').waitFor();
+  await page.getByText('明天交').first().waitFor();
+  await page.getByText('接下來兩週', { exact: true }).waitFor();
   await page.screenshot({ path: `${SHOTS}/06-board.png`, fullPage: true });
 });
 
 await step('board filter chips and day navigation', async () => {
   await page.locator('.filters').getByRole('button', { name: /考試/ }).click();
-  if (await page.locator('.items').getByText('習作 p.12～15').count()) throw new Error('filter did not hide homework');
+  if (await page.locator('.rows').getByText('習作 p.12～15').count()) throw new Error('filter did not hide homework');
   await page.locator('.filters').getByRole('button', { name: /全部/ }).click();
   await page.locator('.week .day').nth(6).click();
   await page.waitForURL(/\?d=/);
   await page.getByRole('button', { name: '回到今天' }).click();
-  await page.locator('.items').getByText('明天穿運動服').waitFor();
+  await page.locator('.rows').getByText('明天穿運動服').waitFor();
 });
 
 // ----- editor -----
@@ -215,7 +215,7 @@ await step('mobile layouts', async () => {
   const mp = await m.newPage();
   watch(mp, 'mobile');
   await mp.goto(BASE + '/');
-  await mp.locator('.items').getByText('習作 p.12～20').waitFor();
+  await mp.locator('.rows').getByText('習作 p.12～20').waitFor();
   await mp.screenshot({ path: `${SHOTS}/10-mobile-board.png`, fullPage: true });
   const over = await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   if (over) throw new Error('horizontal overflow on mobile board');
@@ -239,7 +239,7 @@ await step('dark mode renders', async () => {
   const dp = await d.newPage();
   watch(dp, 'dark');
   await dp.goto(BASE + '/');
-  await dp.locator('.items').getByText('習作 p.12～20').waitFor();
+  await dp.locator('.rows').getByText('習作 p.12～20').waitFor();
   await dp.screenshot({ path: `${SHOTS}/13-dark.png`, fullPage: true });
   await d.close();
 });

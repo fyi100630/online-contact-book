@@ -5,7 +5,7 @@ export type Category = (typeof CATEGORIES)[number];
 
 export const CATEGORY_META: Record<Category, { label: string; short: string }> = {
   homework: { label: '作業', short: '作業' },
-  exam: { label: '考試・評量', short: '考試' },
+  exam: { label: '考試、評量', short: '考試' },
   submission: { label: '繳交', short: '繳交' },
   reminder: { label: '提醒', short: '提醒' },
 };

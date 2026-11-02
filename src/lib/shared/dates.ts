@@ -79,12 +79,28 @@ export function isActiveOn(e: { entryDate: DateStr; dueDate: DateStr | null }, d
 
 export type DeadlineTone = 'today' | 'tomorrow' | 'soon' | 'later' | 'past';
 
-export function deadline(dueDate: DateStr | null, day: DateStr): { tone: DeadlineTone; label: string; days: number } | null {
+/** 依類別決定動詞：作業、繳交是「交」，考試是「考」，提醒是「截止」 */
+function dueVerb(category?: string): string {
+  if (category === 'exam') return '考';
+  if (category === 'homework' || category === 'submission') return '交';
+  return '截止';
+}
+
+/**
+ * 截止日的說法，盡量用口語：「明天交」「週三考」「11/20 交」
+ * day 是目前看的那一天。
+ */
+export function deadline(
+  dueDate: DateStr | null,
+  day: DateStr,
+  category?: string,
+): { tone: DeadlineTone; label: string; days: number } | null {
   if (!dueDate) return null;
   const days = daysBetween(day, dueDate);
-  if (days < 0) return { tone: 'past', label: `已於 ${formatShort(dueDate)} 截止`, days };
-  if (days === 0) return { tone: 'today', label: '今天截止', days };
-  if (days === 1) return { tone: 'tomorrow', label: `明天截止（${formatShort(dueDate)}）`, days };
-  if (days <= 3) return { tone: 'soon', label: `${formatShort(dueDate)} 截止・剩 ${days} 天`, days };
-  return { tone: 'later', label: `${formatShort(dueDate)} 截止・剩 ${days} 天`, days };
+  const verb = dueVerb(category);
+  if (days < 0) return { tone: 'past', label: `${formatShort(dueDate)} 已${verb === '截止' ? '截止' : '過'}`, days };
+  if (days === 0) return { tone: 'today', label: `今天${verb}`, days };
+  if (days === 1) return { tone: 'tomorrow', label: `明天${verb}`, days };
+  if (days <= 6) return { tone: days <= 3 ? 'soon' : 'later', label: `週${WEEKDAYS[weekday(dueDate)]}${verb}`, days };
+  return { tone: 'later', label: `${formatShort(dueDate)} ${verb}`, days };
 }

@@ -60,7 +60,7 @@ export function AccountPage({ user }: { user: SessionUser }) {
       <div className="page-head">
         <div>
           <h1 className="page-title">我的帳號</h1>
-          <p className="page-sub">{ROLE_LABEL[user.role]} ・ 帳號 <span className="mono">{user.username}</span></p>
+          <p className="page-sub">帳號 {user.username}，{ROLE_LABEL[user.role]}</p>
         </div>
       </div>
       <div className="stack-lg">

@@ -93,7 +93,7 @@ export function EntriesPage({ today }: { today: DateStr }) {
         ) : (
           <div className="list">
             {entries.map((e) => {
-              const dl = deadline(e.dueDate, today);
+              const dl = deadline(e.dueDate, today, e.category);
               return (
                 <button key={e.id} className={`list-row cat-${e.category}`} onClick={() => setEditing(e)}>
                   <span className="list-date">
@@ -109,7 +109,7 @@ export function EntriesPage({ today }: { today: DateStr }) {
                       <span className="badge badge-cat">{CATEGORY_META[e.category].short}</span>
                       {e.priority === 'high' && <span className="badge badge-danger">重要</span>}
                       {dl && <span className={`due due-${dl.tone}`}>{dl.label}</span>}
-                      <span>{e.updatedByName ?? '—'} ・ {timeAgo(e.updatedAt)}</span>
+                      <span>{timeAgo(e.updatedAt)}由{e.updatedByName ?? '系統'}修改</span>
                     </span>
                   </span>
                   <span className="list-side muted">編輯</span>

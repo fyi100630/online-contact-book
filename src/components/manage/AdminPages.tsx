@@ -134,7 +134,7 @@ export function UsersPage({ meId }: { meId: string }) {
                     <b>{u.displayName}</b>
                     {u.id === meId && <span className="muted">（你）</span>}
                   </td>
-                  <td className="mono">{u.username}</td>
+                  <td>{u.username}</td>
                   <td>
                     <select className="select" value={u.role} aria-label="角色" onChange={(e) => patch(u, { role: e.target.value as Role }, '角色已更新')}>
                       <option value="editor">{ROLE_LABEL.editor}</option>
@@ -227,7 +227,7 @@ function CreateUserForm({ onCreated }: { onCreated: (username: string, password:
         <input className="input" maxLength={30} value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoFocus />
       </Field>
       <Field label="登入帳號" hint="小寫英文、數字、. _ -，3～32 字，建立後不能修改">
-        <input className="input mono" autoCapitalize="none" spellCheck={false} maxLength={32} value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} />
+        <input className="input" autoCapitalize="none" spellCheck={false} maxLength={32} value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} />
       </Field>
       <Field label="角色">
         <select className="select" value={role} onChange={(e) => setRole(e.target.value as Role)}>
@@ -273,7 +273,7 @@ function SecretView({ username, password, onClose }: { username: string; passwor
       <div className="alert alert-warn">這組密碼只會顯示這一次。請私下交給本人（不要貼在群組），對方登入後會被要求改密碼。</div>
       <dl className="kv">
         <dt>帳號</dt>
-        <dd className="mono">{username}</dd>
+        <dd>{username}</dd>
       </dl>
       <div className="secret">
         <code>{password}</code>

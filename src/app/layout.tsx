@@ -2,12 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@/components/ui';
-import '@fontsource-variable/plus-jakarta-sans';
 import '@fontsource-variable/noto-sans-tc';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: '班級聯絡簿', template: '%s・班級聯絡簿' },
+  title: { default: '班級聯絡簿', template: '%s｜班級聯絡簿' },
   description: '班級作業、考試、繳交與提醒事項',
   robots: { index: false, follow: false },
   referrer: 'same-origin',

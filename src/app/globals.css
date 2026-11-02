@@ -286,7 +286,6 @@ dialog.drawer .dialog-inner { min-height: 100%; }
 .tl-item .dot { transform: translateY(-1px); }
 .tl-item-text { min-width: 0; overflow-wrap: anywhere; }
 .tl-item-text b { color: var(--cat); font-weight: 700; margin-right: 4px; }
-.side-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 .board-foot { text-align: center; font-size: 13px; color: var(--ink-3); padding-top: 12px; }
 
@@ -430,15 +429,6 @@ dialog.drawer .dialog-inner { min-height: 100%; }
   .table td:first-child { flex-basis: 100%; font-size: 16px; }
   .table td:last-child { flex-basis: 100%; }
   .table td:nth-child(5)::before { content: '最後登入 '; }
-}
-
-@media print {
-  body { background: #fff; color: #000; font-size: 12pt; }
-  .board-top, .week, .date-actions, .filters, .side-actions, .board-foot, .toasts, .no-print { display: none !important; }
-  .board { padding: 0; max-width: none; }
-  .board-grid { grid-template-columns: 1fr; }
-  .side { position: static; }
-  .item, .card, .notice { box-shadow: none; break-inside: avoid; }
 }
 
 @media (prefers-reduced-motion: reduce) {

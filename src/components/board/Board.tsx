@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, errorText } from '@/lib/client/api';
 import { addDays, daysBetween, deadline, formatLong, formatShort, WEEKDAYS, weekday, type DateStr } from '@/lib/shared/dates';
-import { buildLineText } from '@/lib/shared/lineText';
 import { CATEGORIES, CATEGORY_META, type BoardData, type Category, type PublicEntry } from '@/lib/shared/types';
 import {
   IconBook,
@@ -12,12 +11,10 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconClock,
-  IconCopy,
   IconMegaphone,
-  IconPrinter,
 } from '../icons';
 import { Linkify } from '../Linkify';
-import { copyText, timeAgo, useToast } from '../ui';
+import { timeAgo, useToast } from '../ui';
 
 const POLL_MS = 60_000;
 
@@ -87,17 +84,6 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
   const isToday = board.date === board.today;
   const offset = daysBetween(board.today, board.date);
   const relative = isToday ? '今天' : offset === 1 ? '明天' : offset === -1 ? '昨天' : offset > 0 ? `${offset} 天後` : `${-offset} 天前`;
-
-  const copyLine = async () => {
-    const text = buildLineText({
-      classTitle: board.classTitle,
-      announcement: board.announcement,
-      date: board.date,
-      entries: board.entries,
-      url: `${window.location.origin}/?d=${board.date}`,
-    });
-    toast((await copyText(text)) ? '已複製，可以直接貼到 LINE' : '複製失敗，請手動選取', 'ok');
-  };
 
   return (
     <>
@@ -195,10 +181,6 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
           </section>
 
           <aside className="side">
-            <div className="side-actions">
-              <button className="btn btn-secondary" onClick={copyLine}><IconCopy size="sm" /> 複製 LINE 格式</button>
-              <button className="btn btn-secondary" onClick={() => window.print()}><IconPrinter size="sm" /> 列印</button>
-            </div>
             <Upcoming board={board} onPick={goTo} />
           </aside>
         </div>

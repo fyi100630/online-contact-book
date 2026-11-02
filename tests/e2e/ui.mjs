@@ -122,13 +122,6 @@ await step('board filter chips and day navigation', async () => {
   await page.locator('.items').getByText('明天穿運動服').waitFor();
 });
 
-await step('copy LINE text', async () => {
-  await page.getByRole('button', { name: '複製 LINE 格式' }).click();
-  await page.getByText('已複製').waitFor();
-  const text = await page.evaluate(() => navigator.clipboard.readText());
-  if (!text.includes('第一次段考') || !text.includes('📢 公告')) throw new Error('line text: ' + text.slice(0, 80));
-});
-
 // ----- editor -----
 const edCtx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
 const ed = await edCtx.newPage();

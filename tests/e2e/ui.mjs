@@ -102,13 +102,12 @@ await step('admin creates an editor and sees one-time password', async () => {
   await page.screenshot({ path: `${SHOTS}/05-users.png` });
 });
 
-await step('public board shows entries, announcement, week strip, upcoming', async () => {
+await step('public board shows entries, announcement, week strip', async () => {
   await page.goto(BASE + '/');
   await page.locator('.rows').getByText('習作 p.12～15').waitFor();
   await page.locator('.rows').getByText('第一次段考 ch1–3').waitFor();
   await page.locator('.notice a[href="https://example.com/range"]').waitFor();
   await page.getByText('明天交').first().waitFor();
-  await page.getByText('接下來兩週', { exact: true }).waitFor();
   await page.screenshot({ path: `${SHOTS}/06-board.png`, fullPage: true });
 });
 

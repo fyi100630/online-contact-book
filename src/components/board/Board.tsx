@@ -92,7 +92,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
           {signedIn ? (
             <Link href="/manage" className="btn btn-primary btn-sm">管理後台</Link>
           ) : (
-            <Link href="/login" className="btn btn-secondary btn-sm">幹部登入</Link>
+            <Link href="/login" className="btn btn-secondary btn-sm">登入</Link>
           )}
         </div>
       </header>
@@ -127,8 +127,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
           </section>
         )}
 
-        <div className="board-grid">
-          <section aria-label="當天事項">
+        <section aria-label="當天事項">
             <div className="filters" role="toolbar" aria-label="篩選類別">
               <button className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
                 全部 <span className="chip-count">{board.entries.length}</span>
@@ -158,12 +157,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
                 </section>
               ))
             )}
-          </section>
-
-          <aside className="side">
-            <Upcoming board={board} onPick={goTo} />
-          </aside>
-        </div>
+        </section>
       </main>
     </>
   );
@@ -214,49 +208,5 @@ function EntryRow({ entry, day }: { entry: PublicEntry; day: DateStr }) {
       </div>
       {dl && <span className={`row-due due-${dl.tone}`}>{dl.label}</span>}
     </li>
-  );
-}
-
-function Upcoming({ board, onPick }: { board: BoardData; onPick: (d: DateStr) => void }) {
-  const groups = useMemo(() => {
-    const map = new Map<DateStr, PublicEntry[]>();
-    for (const e of board.upcoming) {
-      if (!e.dueDate) continue;
-      const list = map.get(e.dueDate) ?? [];
-      list.push(e);
-      map.set(e.dueDate, list);
-    }
-    return [...map.entries()];
-  }, [board.upcoming]);
-
-  return (
-    <section className="upcoming" aria-labelledby="upcoming-title">
-      <h2 id="upcoming-title" className="upcoming-title">接下來兩週</h2>
-      {groups.length === 0 ? (
-        <p className="muted">兩週內沒有要交或要考的</p>
-      ) : (
-        <ol className="upcoming-list">
-          {groups.map(([due, list]) => {
-            const days = daysBetween(board.date, due);
-            return (
-              <li key={due} className="upcoming-day">
-                <button className="upcoming-date" onClick={() => onPick(addDays(due, -1))} title="看前一天要準備的事">
-                  <span className={days <= 1 ? 'is-urgent' : undefined}>{days === 1 ? '明天' : formatLong(due)}</span>
-                </button>
-                <ul>
-                  {list.map((e) => (
-                    <li key={e.id} className="upcoming-item">
-                      {e.subject && <span className="upcoming-subject">{e.subject}</span>}
-                      {e.title}
-                      <span className="upcoming-kind">{CATEGORY_META[e.category].short}</span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-    </section>
   );
 }

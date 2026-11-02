@@ -109,7 +109,7 @@ export function EntriesPage({ today }: { today: DateStr }) {
                       <span className="badge badge-cat">{CATEGORY_META[e.category].short}</span>
                       {e.priority === 'high' && <span className="badge badge-danger">重要</span>}
                       {dl && <span className={`due due-${dl.tone}`}>{dl.label}</span>}
-                      <span>{timeAgo(e.updatedAt)}由{e.updatedByName ?? '系統'}修改</span>
+                      <span title={`${timeAgo(e.updatedAt)}修改`}>{e.updatedByName ?? '系統'}</span>
                     </span>
                   </span>
                   <span className="list-side muted">編輯</span>

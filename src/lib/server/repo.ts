@@ -52,9 +52,8 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
   const sql = db();
   const weekStart = startOfWeek(date);
   const weekEnd = addDays(weekStart, 6);
-  const upcomingEnd = addDays(date, 14);
 
-  const [settingsRows, dayRows, weekRows, upcomingRows] = await Promise.all([
+  const [settingsRows, dayRows, weekRows] = await Promise.all([
     sql`select class_title, announcement, announcement_updated_at, content_version from app.settings where id = 1`,
     sql`
       select * from app.entries
@@ -70,11 +69,6 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
         and e.entry_date <= d::date
         and ((e.due_date is null and e.entry_date = d::date) or e.due_date > d::date)
       group by d order by d`,
-    sql`
-      select * from app.entries
-      where deleted_at is null and due_date > ${date} and due_date <= ${upcomingEnd}
-      order by due_date, (priority = 'high') desc, created_at
-      limit 50`,
   ]);
   const s = settingsRows[0] ?? { class_title: '班級聯絡簿', announcement: '', announcement_updated_at: null, content_version: 0 };
   return {
@@ -85,7 +79,6 @@ export async function getBoard(date: DateStr): Promise<BoardData> {
     date,
     entries: dayRows.map(toPublic),
     week: weekRows.map((r) => ({ date: r.day, count: r.count })),
-    upcoming: upcomingRows.map(toPublic),
     version: String(s.content_version),
   };
 }

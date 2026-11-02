@@ -44,7 +44,6 @@ export type BoardData = {
   date: DateStr;
   entries: PublicEntry[];
   week: { date: DateStr; count: number }[];
-  upcoming: PublicEntry[];
   version: string;
 };
 

@@ -2,9 +2,9 @@
 
 全部在 Supabase、Vercel 的網頁上操作即可，大約 20 分鐘。
 
-> **需要準備的兩個隨機字串**（用密碼管理器產生，或在終端機執行 `openssl rand -hex 24`）：
+> **會用到兩個隨機字串**：
 >
-> 1. **資料庫密碼**：給網站伺服器連資料庫用，至少 32 個字元，只用英文和數字（避免 `@ : / ?` 這類符號弄壞連線網址）。
+> 1. **資料庫密碼**：第 2 步會由資料庫自動產生，不用自己想。
 > 2. **設定碼 SETUP_TOKEN**：建立第一位管理員時用一次，至少 24 個字元。
 >
 > 這兩個值只會存在 Supabase 和 Vercel 的設定裡，**不要**寫進程式碼或 commit 到 GitHub。
@@ -29,11 +29,8 @@
 
 1. 建立專案。區域選離台灣近的（Tokyo `ap-northeast-1` 或 Singapore `ap-southeast-1`）。
 2. SQL Editor → 貼上 [`db/schema.sql`](../db/schema.sql) 整份執行。
-3. 再執行這一行，幫網站伺服器的專用帳號設定密碼（換成你準備的資料庫密碼）：
-
-   ```sql
-   alter role contactbook_app login password '你的資料庫密碼';
-   ```
+3. 再開一個新查詢，貼上 [`db/set-app-password.sql`](../db/set-app-password.sql) 執行。
+   它會隨機產生網站專用帳號的密碼並顯示在下方，**只顯示這一次**，請立刻複製到記事本或密碼管理器。
 
 4. 組出連線網址：Supabase 專案上方的 **Connect** → **Transaction pooler**，會看到類似：
 
@@ -59,7 +56,7 @@
    | Name | Value |
    | --- | --- |
    | `DATABASE_URL` | 第 2 步組出來的連線網址 |
-   | `SETUP_TOKEN` | 你準備的設定碼 |
+   | `SETUP_TOKEN` | 設定碼：在 Supabase SQL Editor 執行 `select replace(gen_random_uuid()::text, '-', '');` 產生 |
 
    這兩個**不要**加 `NEXT_PUBLIC_` 前綴，加了就會被送到瀏覽器。
 

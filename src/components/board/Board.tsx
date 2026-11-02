@@ -98,9 +98,9 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
           </Link>
           <div className="board-top-actions">
             {signedIn ? (
-              <Link href="/manage" className="btn btn-shell-solid btn-sm">管理後台</Link>
+              <Link href="/manage" className="btn btn-primary btn-sm">管理後台</Link>
             ) : (
-              <Link href="/login" className="btn btn-shell btn-sm">幹部登入</Link>
+              <Link href="/login" className="btn btn-ghost btn-sm">幹部登入</Link>
             )}
           </div>
         </div>
@@ -108,13 +108,12 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
 
       <main className="board">
         <section className="date-head" aria-live="polite">
-          <div className="date-heading">
+          <div>
+            <p className="date-kicker">
+              <IconCalendar size="sm" /> {board.date.slice(0, 4)} 年 ・ {relative}
+              <span className="spinner-slot">{loading && <span className="spinner" role="status" aria-label="載入中" />}</span>
+            </p>
             <h1 className="date-title">{formatLong(board.date)}</h1>
-            <span className={`badge${isToday ? ' badge-primary' : ''}`}>
-              {board.date.slice(0, 4) !== board.today.slice(0, 4) && `${board.date.slice(0, 4)} 年・`}
-              {relative}
-            </span>
-            <span className="spinner-slot">{loading && <span className="spinner" role="status" aria-label="載入中" />}</span>
           </div>
           <div className="date-actions">
             {!isToday && (
@@ -138,7 +137,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
           <section className="notice" aria-label="公告">
             <span className="notice-icon"><IconMegaphone /></span>
             <div className="notice-body">
-              <h2 className="notice-title">公告</h2>
+              <p className="notice-label">公告</p>
               <p className="notice-text"><Linkify text={board.announcement} /></p>
               {board.announcementUpdatedAt && <p className="notice-meta">更新於 {timeAgo(board.announcementUpdatedAt)}</p>}
             </div>
@@ -197,33 +196,26 @@ function WeekStrip({ board, onPick }: { board: BoardData; onPick: (d: DateStr) =
   return (
     <nav className="week" aria-label="選擇日期">
       <button className="week-nav" onClick={() => onPick(addDays(first, -7))} aria-label="上一週"><IconChevronLeft /></button>
-      {board.week.map(({ date, count, due }) => {
+      {board.week.map(({ date, count }) => {
         const wd = weekday(date);
-        const cls = [
-          'day',
-          `heat-${Math.min(due, 3)}`,
-          wd === 0 || wd === 6 ? 'is-weekend' : '',
-          date === board.today ? 'is-today' : '',
-        ].join(' ');
+        const cls = ['day', wd === 0 || wd === 6 ? 'is-weekend' : '', date === board.today ? 'is-today' : ''].join(' ');
         return (
           <button
             key={date}
             className={cls}
             aria-current={date === board.date ? 'date' : undefined}
             onClick={() => onPick(date)}
-            aria-label={`${formatLong(date)}，${due} 項到期，${count} 項事項`}
+            aria-label={`${formatLong(date)}，${count} 項`}
           >
             <span className="day-wd">{date === board.today ? '今天' : `週${WEEKDAYS[wd]}`}</span>
             <span className="day-num">{Number(date.slice(8))}</span>
-            <span className="day-due" aria-hidden="true">{due > 0 ? `${due} 件到期` : ''}</span>
+            <span className="day-dots" aria-hidden="true">
+              {Array.from({ length: Math.min(count, 4) }, (_, i) => <i key={i} />)}
+            </span>
           </button>
         );
       })}
       <button className="week-nav" onClick={() => onPick(addDays(first, 7))} aria-label="下一週"><IconChevronRight /></button>
-      <p className="week-legend">
-        <span className="heat-scale" aria-hidden="true"><i className="heat-1" /><i className="heat-2" /><i className="heat-3" /></span>
-        顏色越深，當天要交、要考的越多
-      </p>
     </nav>
   );
 }

@@ -1,18 +1,24 @@
-# Operating System Files
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+
 # Vercel
 .vercel
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment Variables & Local Secrets
+# 環境變數與秘密（絕對不要 commit）
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# 測試輸出
+test-results/
+playwright-report/

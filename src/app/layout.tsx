@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@/components/ui';
+import '@fontsource-variable/noto-sans-tc';
 import './globals.css';
 
 export const metadata: Metadata = {

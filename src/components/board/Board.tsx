@@ -106,7 +106,7 @@ export function Board({ initial, signedIn }: { initial: BoardData; signedIn: boo
               <span className="hero-wd">週{WEEKDAYS[weekday(board.date)]}</span>
             </span>
           </h1>
-          {isToday ? <span className="seal" aria-label="今天">今日</span> : <span className="hero-rel">{relative}</span>}
+          <span className="hero-rel">{isToday ? '今天' : relative}</span>
           <span className="spinner-slot">{loading && <span className="spinner" role="status" aria-label="載入中" />}</span>
           <div className="hero-actions">
             {!isToday && <button className="btn btn-secondary btn-sm" onClick={() => goTo(board.today)}>回到今天</button>}

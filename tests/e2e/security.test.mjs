@@ -144,6 +144,17 @@ test('editor: CRUD entries, optimistic locking, no admin powers', async () => {
   assert.equal(del.status, 200);
 });
 
+test('only admins can change display names', async () => {
+  const self = await editor.req('/api/account', { method: 'PATCH', body: { displayName: '自己改的名字' } });
+  assert.equal(self.status, 405, 'self-service rename endpoint must not exist');
+  const viaUsers = await editor.req(`/api/users/${editorId}`, { method: 'PATCH', body: { displayName: '自己改的名字' } });
+  assert.equal(viaUsers.status, 403);
+  const byAdmin = await admin.req(`/api/users/${editorId}`, { method: 'PATCH', body: { displayName: '學藝' } });
+  assert.equal(byAdmin.status, 200);
+  const me = await editor.req('/api/account');
+  assert.equal(me.json.user.displayName, '學藝');
+});
+
 test('admin: trash restore + audit log records everything without secrets', async () => {
   const trash = await admin.req('/api/trash');
   assert.equal(trash.json.entries[0].id, entry.id);

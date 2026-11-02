@@ -9,21 +9,9 @@ import { Field, useToast } from '../ui';
 export function AccountPage({ user }: { user: SessionUser }) {
   const toast = useToast();
   const forced = user.mustChangePassword;
-  const [displayName, setDisplayName] = useState(user.displayName);
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [pwError, setPwError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const saveName = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api('/api/account', { method: 'PATCH', body: { displayName } });
-      toast('名稱已更新');
-      window.location.reload();
-    } catch (err) {
-      toast(errorText(err), 'error');
-    }
-  };
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +48,7 @@ export function AccountPage({ user }: { user: SessionUser }) {
       <div className="page-head">
         <div>
           <h1 className="page-title">我的帳號</h1>
-          <p className="page-sub">帳號 {user.username}，{ROLE_LABEL[user.role]}</p>
+          <p className="page-sub">{user.displayName}（帳號 {user.username}，{ROLE_LABEL[user.role]}）</p>
         </div>
       </div>
       <div className="stack-lg">
@@ -90,16 +78,6 @@ export function AccountPage({ user }: { user: SessionUser }) {
 
         {!forced && (
           <>
-            <form className="card section-card" onSubmit={saveName}>
-              <h2 className="section-title">顯示名稱</h2>
-              <Field label="名稱" hint="修改紀錄裡會顯示這個名字">
-                <input className="input" maxLength={30} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-              </Field>
-              <div className="form-actions">
-                <button className="btn btn-secondary" disabled={!displayName.trim() || displayName === user.displayName}>儲存</button>
-              </div>
-            </form>
-
             <section className="card section-card">
               <h2 className="section-title">登入中的裝置</h2>
               <p className="muted">如果曾經在別人的手機或公用電腦登入，可以把其他裝置全部登出。</p>

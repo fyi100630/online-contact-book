@@ -298,6 +298,23 @@ test('brute force: account locks after 5 failures (same response for unknown use
   assert.equal(ghost.json.error, '帳號或密碼錯誤');
 });
 
+test('brute force cannot be bypassed by firing guesses in parallel (F1 race)', async () => {
+  // 同時送一大批錯誤登入：若限流有競態，它們會在任何失敗被記錄前全部闖過（全部 401）。
+  // 修好之後，同帳號的嘗試被 advisory lock 排成一列，最多 5 個得到 401，其餘一律 429。
+  const user = 'race-ghost-' + Date.now();
+  const results = await Promise.all(
+    Array.from({ length: 30 }, (_, i) =>
+      new Client().req('/api/auth/login', { method: 'POST', body: { username: user, password: 'nope-' + i } }),
+    ),
+  );
+  const statuses = results.map((r) => r.status);
+  const got401 = statuses.filter((s) => s === 401).length;
+  const got429 = statuses.filter((s) => s === 429).length;
+  assert.ok(got401 <= 5, `並發錯誤登入最多 5 個可得到 401，實際 ${got401} —— 競態未修補`);
+  assert.ok(got429 >= 25, `其餘應被限流擋下（429），實際 429 = ${got429}`);
+  assert.equal(got401 + got429, 30, `回應應只有 401/429，實際 = ${statuses.join(',')}`);
+});
+
 test('security headers on pages and API', async () => {
   const page = await fetch(BASE + '/');
   const csp = page.headers.get('content-security-policy');

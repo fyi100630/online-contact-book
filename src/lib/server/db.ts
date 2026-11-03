@@ -3,6 +3,8 @@ import postgres from 'postgres';
 
 type Sql = ReturnType<typeof postgres>;
 export type Tx = postgres.TransactionSql;
+/** 可以下 SQL 的對象：連線池（db()）或交易（Tx）。讓同一段查詢在交易內外都能共用。 */
+export type Queryable = Sql | Tx;
 
 const globalForDb = globalThis as unknown as { __cbSql?: Sql };
 

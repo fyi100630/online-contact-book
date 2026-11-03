@@ -1,5 +1,5 @@
 import 'server-only';
-import { db, withActor, type Actor, type Tx } from './db';
+import { db, withActor, type Actor, type Queryable, type Tx } from './db';
 import { HttpError } from './http';
 import { addDays, isValidDateStr, startOfWeek, todayIn, type DateStr } from '@/lib/shared/dates';
 import {
@@ -314,14 +314,32 @@ export async function countUsers(): Promise<number> {
   return r?.n ?? 0;
 }
 
-export async function findUserForLogin(username: string) {
-  const [r] = await db()`select id, password_hash, is_active from app.users where username = ${username}`;
+export async function findUserForLogin(username: string, sql: Queryable = db()) {
+  const [r] = await sql`select id, password_hash, is_active from app.users where username = ${username}`;
   return r ? { id: r.id as string, passwordHash: r.password_hash as string, isActive: r.is_active as boolean } : null;
 }
 
-export async function getPasswordHash(userId: string): Promise<string | null> {
-  const [r] = await db()`select password_hash from app.users where id = ${userId} and is_active`;
+export async function getPasswordHash(userId: string, sql: Queryable = db()): Promise<string | null> {
+  const [r] = await sql`select password_hash from app.users where id = ${userId} and is_active`;
   return r?.password_hash ?? null;
+}
+
+/**
+ * 建立第一位管理員。count 檢查與 insert 在同一個交易、持有固定的 advisory lock：
+ * 就算多個帶對設定碼的請求同時打進來，也只會建立「一位」管理員（有人了就回 null）。
+ */
+export async function bootstrapAdmin(input: { username: string; displayName: string; passwordHash: string }): Promise<string | null> {
+  const id = await db().begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(735284)`; // 固定 key：序列化所有初次設定請求
+    const [c] = await tx`select count(*)::int as n from app.users`;
+    if ((c?.n ?? 0) > 0) return null;
+    const [r] = await tx`
+      insert into app.users (username, display_name, role, password_hash, must_change_password)
+      values (${input.username}, ${input.displayName}, 'admin', ${input.passwordHash}, false)
+      returning id`;
+    return r!.id as string;
+  });
+  return id as string | null;
 }
 
 export async function markLogin(userId: string): Promise<void> {

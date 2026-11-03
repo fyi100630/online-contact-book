@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { clientIp, fail, handle, ok, readJson } from '@/lib/server/http';
 import { hashPassword } from '@/lib/server/password';
 import { isLoginBlocked, recordLoginAttempt } from '@/lib/server/ratelimit';
-import { countUsers, createUser } from '@/lib/server/repo';
+import { bootstrapAdmin } from '@/lib/server/repo';
 import { createSession } from '@/lib/server/session';
 import { setupSchema } from '@/lib/shared/validation';
 
@@ -14,11 +14,13 @@ const sha = (s: string) => createHash('sha256').update(s).digest();
  *   1. 資料庫裡還沒有任何帳號，而且
  *   2. 輸入的設定碼和伺服器環境變數 SETUP_TOKEN 相同（至少 24 字元）
  * 時才會成功。建立完成後這個 API 就永久失效。
+ *
+ * count 檢查與 insert 綁在同一個交易、持有固定的 advisory lock（見 repo.bootstrapAdmin），
+ * 所以就算多個帶對設定碼的請求同時打進來，也只會生出「一位」管理員。
  */
 export const POST = handle(async (req: NextRequest) => {
   const expected = process.env.SETUP_TOKEN ?? '';
   if (expected.length < 24) return fail(404, 'Not found');
-  if ((await countUsers()) > 0) return fail(404, 'Not found');
 
   const ip = clientIp(req);
   if (await isLoginBlocked('__setup__', ip)) return fail(429, '嘗試次數太多，請 15 分鐘後再試');
@@ -29,14 +31,14 @@ export const POST = handle(async (req: NextRequest) => {
     return fail(403, '設定碼不正確');
   }
 
-  const user = await createUser(null, {
+  const userId = await bootstrapAdmin({
     username: input.username,
     displayName: input.displayName,
-    role: 'admin',
     passwordHash: await hashPassword(input.password),
-    mustChangePassword: false,
   });
+  if (!userId) return fail(404, 'Not found'); // 已經有人了（含並發時輸掉的那些請求）
+
   await recordLoginAttempt('__setup__', ip, true);
-  await createSession(user.id, ip, req.headers.get('user-agent') ?? '');
+  await createSession(userId, ip, req.headers.get('user-agent') ?? '');
   return ok({ ok: true }, { status: 201 });
 });

@@ -20,7 +20,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     return (
       <main className="state">
         <p className="state-title">聯絡簿暫時無法載入</p>
-        <p className="muted">請稍後再試一次。如果一直出現這個畫面，請通知幹部或小老師。</p>
+        <p className="muted">請稍後再試一次。如果一直出現這個畫面，請找系統管理員。</p>
       </main>
     );
   }

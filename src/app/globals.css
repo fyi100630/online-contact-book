@@ -234,6 +234,8 @@ dialog.drawer .dialog-inner { min-height: 100%; }
 
 .notice { padding: 16px 18px; border-radius: var(--radius); background: var(--bg-2); }
 .notice-title { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+.notice-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.notice-row .notice-title { margin: 0; }
 .notice-text { white-space: pre-line; overflow-wrap: anywhere; max-width: 70ch; }
 .notice-text a { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .notice-meta { font-size: 12px; color: var(--ink-3); margin-top: 8px; }

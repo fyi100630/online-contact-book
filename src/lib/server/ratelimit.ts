@@ -43,7 +43,10 @@ export async function recordLoginSuccess(username: string, ip: string): Promise<
   await db()`insert into app.login_attempts (username, ip, success) values (${username.slice(0, 64)}, ${ip}, true)`;
 }
 
-export type GuardResult<T> = { blocked: 'short' | 'day' } | { blocked: false; success: boolean; value: T };
+export type GuardResult<T> =
+  | { blocked: 'short' | 'day' }
+  /** justLocked：這一次失敗剛好讓帳號或 IP 達到 24 小時上限（只在達到的那一次出現，用來發通知） */
+  | { blocked: false; success: boolean; value: T; justLocked: ('account' | 'ip')[] };
 
 /**
  * 原子限流：「先把這次登記為失敗，再做昂貴的驗證（scrypt）」，驗證成功才清掉失敗紀錄。
@@ -69,7 +72,7 @@ export async function guardedAttempt<T>(
 ): Promise<GuardResult<T>> {
   const shortSince = new Date(Date.now() - SHORT_MS);
   const daySince = new Date(Date.now() - DAY_MS);
-  const lock = await db().begin(async (tx: Tx) => {
+  const gate = await db().begin(async (tx: Tx) => {
     // 1) 同一帳號、同一 IP 的請求在這裡排隊，但只排「數＋登記」這一小段（交易結束自動釋放）
     await tx`select pg_advisory_xact_lock(hashtextextended(${username}, 0))`;
     await tx`select pg_advisory_xact_lock(hashtextextended(${ip}, 1))`;
@@ -85,14 +88,18 @@ export async function guardedAttempt<T>(
       where at > ${daySince} and not success and (username = ${username} or ip = ${ip})`;
     const userLock = lockOf(n(c?.user_short), n(c?.user_day), 'account');
     const ipLock = lockOf(n(c?.ip_short), n(c?.ip_day), 'ip');
-    if (userLock === 'day' || ipLock === 'day') return 'day' as const;
-    if (userLock || ipLock) return 'short' as const;
+    if (userLock === 'day' || ipLock === 'day') return { lock: 'day' as const, reached: [] };
+    if (userLock || ipLock) return { lock: 'short' as const, reached: [] };
 
     // 3) 先把這次「當成失敗」寫進去——之後驗證成功再清掉
     await tx`insert into app.login_attempts (username, ip, success) values (${username.slice(0, 64)}, ${ip}, false)`;
-    return null;
+    // 這一筆剛好補到 24 小時上限的話，記下來（失敗才算，驗證成功就不是被鎖）
+    const reached: ('account' | 'ip')[] = [];
+    if (n(c?.user_day) + 1 === LOGIN_LIMITS.accountDay) reached.push('account');
+    if (n(c?.ip_day) + 1 === LOGIN_LIMITS.ipDay) reached.push('ip');
+    return { lock: null, reached };
   });
-  if (lock) return { blocked: lock };
+  if (gate.lock) return { blocked: gate.lock };
 
   // 4) 鎖和連線都放掉了，才做昂貴的驗證
   const { success, value } = await verify();
@@ -101,7 +108,7 @@ export async function guardedAttempt<T>(
     await db()`delete from app.login_attempts where username = ${username} and ip = ${ip} and not success`;
     if (Math.random() < 0.02) await db()`delete from app.login_attempts where at < now() - interval '7 days'`;
   }
-  return { blocked: false, success, value };
+  return { blocked: false, success, value, justLocked: success ? [] : gate.reached };
 }
 
 /** 後台：最近 24 小時的概況（後台首頁的警告用） */
@@ -136,7 +143,7 @@ export async function getLoginActivitySummary(): Promise<LoginActivitySummary> {
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : String(v));
 
 /** 後台「登入紀錄」：最近 7 天每個帳號、每個 IP 的失敗情形 */
-export async function getLoginActivity(): Promise<LoginActivity> {
+export async function getLoginActivity(): Promise<Omit<LoginActivity, 'notifyConfigured'>> {
   const sql = db();
   const shortSince = new Date(Date.now() - SHORT_MS);
   const daySince = new Date(Date.now() - DAY_MS);

@@ -57,6 +57,7 @@
    | --- | --- |
    | `DATABASE_URL` | 第 2 步組出來的連線網址 |
    | `SETUP_TOKEN` | 設定碼：在 Supabase SQL Editor 執行 `select replace(gen_random_uuid()::text, '-', '');` 產生 |
+   | `DISCORD_WEBHOOK_URL` | （選用，只勾 Production）Discord 頻道 → 整合 → Webhook 的網址。有可疑登入、帳號或 IP 被鎖 24 小時、有人成為管理員時會通知。設好後在後台「登入紀錄」按「傳送測試通知」確認 |
 
    這兩個**不要**加 `NEXT_PUBLIC_` 前綴，加了就會被送到瀏覽器。
 

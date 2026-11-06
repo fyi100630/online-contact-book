@@ -1,8 +1,33 @@
 // API 安全測試：對真正啟動的伺服器 + 資料庫發請求。
 // 用法：先 next start，然後 BASE=http://localhost:3100 SETUP_TOKEN=... node --test tests/e2e/security.test.mjs
 import assert from 'node:assert/strict';
+import http from 'node:http';
 import { after, test } from 'node:test';
 import postgres from 'postgres';
+
+// 假的 Discord：DISCORD_WEBHOOK_URL 指向本機（CI 就是這樣設）時，在這裡接住網站送出的通知
+const HOOK = process.env.DISCORD_WEBHOOK_URL ?? '';
+const hookMsgs = [];
+let hookServer = null;
+if (/^http:\/\/127\.0\.0\.1:\d+\//.test(HOOK)) {
+  hookServer = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      try { hookMsgs.push(JSON.parse(body)); } catch {}
+      res.writeHead(204).end();
+    });
+  });
+  await new Promise((r) => hookServer.listen(Number(new URL(HOOK).port), '127.0.0.1', r));
+}
+after(() => hookServer?.close());
+const waitHook = async (pred, ms = 6000) => {
+  for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 100))) {
+    const m = hookMsgs.find(pred);
+    if (m) return m;
+  }
+  return null;
+};
 
 const BASE = process.env.BASE ?? 'http://localhost:3100';
 const ORIGIN = new URL(BASE).origin;
@@ -425,4 +450,50 @@ test('admins see recent successful logins with IP, device and a warning for bot-
   assert.equal(at50[0].displayName, '登入測試');
   assert.equal(at50[0].suspicious, false);
   assert.equal(logins.find((g) => g.ip === '198.51.100.51')?.suspicious, true);
+});
+
+test('Discord notifications: test button, suspicious login, one alert per 24h lock, new admin; @mentions defused', { skip: !hookServer || !sql }, async () => {
+  const ts = Date.now();
+  const BROWSER = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  const has = (m, ...parts) => parts.every((p) => m.content.includes(p));
+
+  // 後台的「傳送測試通知」
+  assert.equal((await admin.req('/api/notify/test', { method: 'POST' })).status, 200);
+  const t = await waitHook((m) => has(m, '測試通知'));
+  assert.ok(t, 'test message arrives');
+  assert.deepEqual(t.allowed_mentions, { parse: [] }, 'no message can ping anyone');
+
+  // 從國外登入成功 → 可疑登入
+  const foreign = 'nt-' + ts;
+  const pw1 = (await admin.req('/api/users', { method: 'POST', body: { username: foreign, displayName: '國外', role: 'editor' } })).json.tempPassword;
+  const r1 = await new Client().req('/api/auth/login', { method: 'POST', body: { username: foreign, password: pw1 },
+    headers: { 'x-real-ip': '198.51.100.70', 'user-agent': BROWSER, 'x-vercel-ip-country': 'DE' } });
+  assert.equal(r1.status, 200);
+  assert.ok(await waitHook((m) => has(m, '可疑的登入成功', foreign, 'DE')), 'foreign login is reported');
+
+  // 在台灣用瀏覽器正常登入 → 不通知
+  const clean = 'nc-' + ts;
+  const pw2 = (await admin.req('/api/users', { method: 'POST', body: { username: clean, displayName: '正常', role: 'editor' } })).json.tempPassword;
+  const r2 = await new Client().req('/api/auth/login', { method: 'POST', body: { username: clean, password: pw2 },
+    headers: { 'x-real-ip': '198.51.100.71', 'user-agent': BROWSER, 'x-vercel-ip-country': 'TW' } });
+  assert.equal(r2.status, 200);
+  assert.equal(await waitHook((m) => has(m, clean), 1500), null, 'a normal login sends nothing');
+
+  // 帳號剛好被鎖 24 小時 → 通知一次；攻擊者自己取的名字（@everyone、反引號）不能生效
+  const evil = 'lock@everyone`x' + ts;
+  await sql`insert into app.login_attempts (username, ip, success, at)
+            select ${evil}, '198.51.100.72', false, ${hoursAgo(2)} from generate_series(1, 19)`;
+  assert.equal((await loginFrom('198.51.100.73', evil, 'x')).status, 401, 'the 20th failure is still evaluated');
+  const lock = await waitHook((m) => has(m, '帳號被鎖 24 小時', String(ts)));
+  assert.ok(lock, '24h lock is reported');
+  assert.ok(!lock.content.includes('`x' + ts) && lock.content.includes('ˋx' + ts), 'backticks in names are replaced');
+  assert.deepEqual(lock.allowed_mentions, { parse: [] });
+  assert.equal((await loginFrom('198.51.100.73', evil, 'x')).status, 429);
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal(hookMsgs.filter((m) => has(m, '帳號被鎖 24 小時', String(ts))).length, 1, 'one alert per lock, not per attempt');
+
+  // 新增管理員 → 通知
+  const boss2 = 'na-' + ts;
+  assert.equal((await admin.req('/api/users', { method: 'POST', body: { username: boss2, displayName: '新管理員', role: 'admin' } })).status, 201);
+  assert.ok(await waitHook((m) => has(m, '有人成為管理員', boss2)), 'new admin is reported');
 });

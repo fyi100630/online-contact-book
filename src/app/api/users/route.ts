@@ -1,6 +1,7 @@
-import type { NextRequest } from 'next/server';
+import { after, type NextRequest } from 'next/server';
 import { requireUser } from '@/lib/server/auth';
 import { handle, ok, readJson } from '@/lib/server/http';
+import { notifyAdminGranted } from '@/lib/server/notify';
 import { generateTempPassword, hashPassword } from '@/lib/server/password';
 import { createUser, listUsers } from '@/lib/server/repo';
 import { createUserSchema } from '@/lib/shared/validation';
@@ -16,5 +17,6 @@ export const POST = handle(async (req: NextRequest) => {
   const input = await readJson(req, createUserSchema);
   const tempPassword = generateTempPassword();
   const user = await createUser(actor, { ...input, passwordHash: await hashPassword(tempPassword), mustChangePassword: true });
+  if (user.role === 'admin') after(() => notifyAdminGranted({ userId: user.id, byName: actor.name, how: 'created' }));
   return ok({ user, tempPassword }, { status: 201 });
 });

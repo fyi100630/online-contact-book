@@ -158,6 +158,8 @@ export type LoginSuccess = {
 export type LoginActivity = LoginActivitySummary & {
   /** 最近 7 天成功登入（新的在前） */
   logins: LoginSuccess[];
+  /** 伺服器有沒有設定 Discord 通知（DISCORD_WEBHOOK_URL） */
+  notifyConfigured: boolean;
   accounts: LoginActivityAccount[];
   ips: LoginActivityIp[];
 };

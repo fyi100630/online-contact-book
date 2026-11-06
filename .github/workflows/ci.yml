@@ -26,6 +26,8 @@ jobs:
       DATABASE_SSL: disable
       SETUP_TOKEN: ci-setup-token-0123456789abcdef
       APP_TIMEZONE: Asia/Taipei
+      # 測試用的假 Discord：security.test.mjs 會在這個位址接通知
+      DISCORD_WEBHOOK_URL: http://127.0.0.1:3199/discord-test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

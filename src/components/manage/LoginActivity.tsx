@@ -2,20 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api, errorText } from '@/lib/client/api';
+import { deviceLabel } from '@/lib/shared/device';
 import { LOGIN_LIMITS, type LockState, type LoginActivity } from '@/lib/shared/types';
 import { Empty, Spinner, formatDateTime, timeAgo, useToast } from '../ui';
 
 const L = LOGIN_LIMITS;
-
-/** 把 User-Agent 變成看得懂的裝置名稱；認不出來的程式或腳本特別標出來 */
-function deviceLabel(ua: string | null): string {
-  if (!ua) return '不明';
-  if (ua.startsWith('ContactBookAndroid/')) return `App ${ua.slice('ContactBookAndroid/'.length)}`;
-  if (/curl|wget|python|node|axios|go-http|java\/|okhttp|httpclient|postman|insomnia|bot|scrapy/i.test(ua)) return '程式／腳本（不是瀏覽器）';
-  const os = /iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Macintosh/.test(ua) ? 'Mac' : /CrOS/.test(ua) ? 'Chromebook' : /Linux/.test(ua) ? 'Linux' : '';
-  const browser = /Edg\//.test(ua) ? 'Edge' : /Line\//.test(ua) ? 'LINE' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
-  return [os, browser].filter(Boolean).join(' ') || '其他';
-}
 
 function LockBadge({ lock }: { lock: LockState }) {
   if (lock === 'day') return <span className="badge badge-warn">鎖定 24 小時</span>;
@@ -28,6 +19,19 @@ export function LoginActivityPage() {
   const [data, setData] = useState<LoginActivity | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  const sendTest = async () => {
+    setTesting(true);
+    try {
+      await api('/api/notify/test', { method: 'POST' });
+      toast('已送出，去 Discord 看看有沒有收到', 'ok');
+    } catch (e) {
+      toast(errorText(e), 'error');
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -87,6 +91,27 @@ export function LoginActivityPage() {
               <div className="stat-num">{data.lockedAccounts + data.blockedIps}</div>
               <div className="stat-label">目前鎖定中（帳號 {data.lockedAccounts}、IP {data.blockedIps}）</div>
             </div>
+          </div>
+
+          <div className="notice gap-top">
+            <div className="notice-row">
+              <p className="notice-title">
+                Discord 通知{' '}
+                {data.notifyConfigured ? <span className="badge badge-primary">已設定</span> : <span className="badge">還沒設定</span>}
+              </p>
+              {data.notifyConfigured && (
+                <button className="btn btn-secondary btn-sm" disabled={testing} onClick={sendTest}>
+                  {testing ? '傳送中…' : '傳送測試通知'}
+                </button>
+              )}
+            </div>
+            <p className="notice-text">
+              {data.notifyConfigured
+                ? '有可疑的成功登入（國外 IP、試過很多帳號的 IP、用程式登入）、帳號或 IP 被鎖 24 小時、或有人成為管理員時，會傳訊息到你的 Discord 頻道。'
+                : `設定方法：Discord 頻道設定 → 整合 → Webhook → 新 Webhook → 複製網址。
+再到 Vercel 專案 → Settings → Environment Variables，新增 DISCORD_WEBHOOK_URL（值貼上網址，只勾 Production），存檔後 Redeploy。
+這個網址等於頻道的發言權，不要貼給任何人。`}
+            </p>
           </div>
 
           <h2 className="section-title gap-top">最近成功登入</h2>

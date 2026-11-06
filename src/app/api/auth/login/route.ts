@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { clientIp, fail, handle, ok, readJson } from '@/lib/server/http';
 import { burnPasswordCheck, verifyPassword } from '@/lib/server/password';
-import { guardedAttempt } from '@/lib/server/ratelimit';
+import { guardedAttempt, recordLoginSuccess } from '@/lib/server/ratelimit';
 import { findUserForLogin, markLogin } from '@/lib/server/repo';
 import { createSession } from '@/lib/server/session';
 import { loginSchema } from '@/lib/shared/validation';
@@ -29,6 +29,7 @@ export const POST = handle(async (req: NextRequest) => {
   if (gate.blocked) return fail(429, '登入失敗次數太多，請 15 分鐘後再試', 'rate_limited');
   if (!gate.success || !gate.value) return fail(401, '帳號或密碼錯誤', 'invalid_credentials');
 
+  await recordLoginSuccess(username, ip);
   await markLogin(gate.value);
   await createSession(gate.value, ip, req.headers.get('user-agent') ?? '');
   return ok({ ok: true });

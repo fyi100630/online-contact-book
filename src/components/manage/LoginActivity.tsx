@@ -7,6 +7,16 @@ import { Empty, Spinner, formatDateTime, timeAgo, useToast } from '../ui';
 
 const L = LOGIN_LIMITS;
 
+/** 把 User-Agent 變成看得懂的裝置名稱；認不出來的程式或腳本特別標出來 */
+function deviceLabel(ua: string | null): string {
+  if (!ua) return '不明';
+  if (ua.startsWith('ContactBookAndroid/')) return `App ${ua.slice('ContactBookAndroid/'.length)}`;
+  if (/curl|wget|python|node|axios|go-http|java\/|okhttp|httpclient|postman|insomnia|bot|scrapy/i.test(ua)) return '程式／腳本（不是瀏覽器）';
+  const os = /iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Macintosh/.test(ua) ? 'Mac' : /CrOS/.test(ua) ? 'Chromebook' : /Linux/.test(ua) ? 'Linux' : '';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /Line\//.test(ua) ? 'LINE' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
+  return [os, browser].filter(Boolean).join(' ') || '其他';
+}
+
 function LockBadge({ lock }: { lock: LockState }) {
   if (lock === 'day') return <span className="badge badge-warn">鎖定 24 小時</span>;
   if (lock === 'short') return <span className="badge badge-warn">鎖定 15 分鐘</span>;
@@ -51,7 +61,7 @@ export function LoginActivityPage() {
       <div className="page-head">
         <div>
           <h1 className="page-title">登入紀錄</h1>
-          <p className="page-sub">最近 7 天登入失敗的帳號與來源。登入成功只會清掉「本人從同一個網路」打錯的紀錄。</p>
+          <p className="page-sub">最近 7 天誰成功登入、從哪裡登入，以及登入失敗的帳號與來源。登入成功只會清掉「本人從同一個網路」打錯的紀錄。</p>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={load}>重新整理</button>
       </div>
@@ -79,7 +89,39 @@ export function LoginActivityPage() {
             </div>
           </div>
 
-          <h2 className="section-title gap-top">帳號</h2>
+          <h2 className="section-title gap-top">最近成功登入</h2>
+          <div className="card table-wrap">
+            {data.logins.length === 0 ? (
+              <Empty title="最近 7 天沒有人登入" />
+            ) : (
+              <table className="table table-labeled">
+                <thead>
+                  <tr><th>帳號</th><th>時間</th><th>IP</th><th>裝置</th><th /></tr>
+                </thead>
+                <tbody>
+                  {data.logins.map((g, i) => (
+                    <tr key={`${g.at}-${g.username}-${i}`}>
+                      <td>
+                        <b>{g.displayName ?? g.username}</b> <span className="muted mono">{g.username}</span>
+                      </td>
+                      <td className="muted" data-label="時間" title={formatDateTime(g.at)}>{timeAgo(g.at)}</td>
+                      <td data-label="IP">
+                        {g.ip ? (
+                          <a className="mono" href={`https://ipinfo.io/${encodeURIComponent(g.ip)}`} target="_blank" rel="noopener noreferrer">{g.ip}</a>
+                        ) : (
+                          <span className="muted">不明</span>
+                        )}
+                      </td>
+                      <td className="muted" data-label="裝置" title={g.userAgent ?? undefined}>{deviceLabel(g.userAgent)}</td>
+                      <td>{g.suspicious && <span className="badge badge-warn">這個 IP 也試過很多帳號</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <h2 className="section-title gap-top">登入失敗：帳號</h2>
           <div className="card table-wrap">
             {data.accounts.length === 0 ? (
               <Empty title="最近 7 天沒有登入失敗" />
@@ -114,7 +156,7 @@ export function LoginActivityPage() {
             )}
           </div>
 
-          <h2 className="section-title gap-top">來源 IP</h2>
+          <h2 className="section-title gap-top">登入失敗：來源 IP</h2>
           <div className="card table-wrap">
             {data.ips.length === 0 ? (
               <Empty title="最近 7 天沒有登入失敗" />

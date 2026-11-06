@@ -1,6 +1,6 @@
 import 'server-only';
 import { db, type Tx } from './db';
-import { LOGIN_LIMITS, type LockState, type LoginActivity, type LoginActivitySummary } from '@/lib/shared/types';
+import { LOGIN_LIMITS, type LockState, type LoginActivity, type LoginActivitySummary, type LoginSuccess } from '@/lib/shared/types';
 
 const SHORT_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -36,6 +36,11 @@ export async function recordLoginAttempt(username: string, ip: string, success: 
   if (Math.random() < 0.02) {
     await db()`delete from app.login_attempts where at < now() - interval '7 days'`;
   }
+}
+
+/** 記一筆成功登入（後台「最近成功登入」用；不影響失敗次數的計算，7 天後自動清掉） */
+export async function recordLoginSuccess(username: string, ip: string): Promise<void> {
+  await db()`insert into app.login_attempts (username, ip, success) values (${username.slice(0, 64)}, ${ip}, true)`;
 }
 
 export type GuardResult<T> = { blocked: 'short' | 'day' } | { blocked: false; success: boolean; value: T };
@@ -136,8 +141,9 @@ export async function getLoginActivity(): Promise<LoginActivity> {
   const shortSince = new Date(Date.now() - SHORT_MS);
   const daySince = new Date(Date.now() - DAY_MS);
   const weekSince = new Date(Date.now() - WEEK_MS);
-  const [summary, accounts, ips] = await Promise.all([
+  const [summary, logins, accounts, ips] = await Promise.all([
     getLoginActivitySummary(),
+    getRecentLogins(weekSince),
     sql`
       select f.username, bool_or(u.id is not null) as exists,
              count(*) as fails, count(*) filter (where f.at > ${daySince}) as fails_day,
@@ -161,6 +167,7 @@ export async function getLoginActivity(): Promise<LoginActivity> {
   ]);
   return {
     ...summary,
+    logins,
     accounts: accounts.map((r) => ({
       username: r.username,
       exists: Boolean(r.exists),
@@ -179,6 +186,57 @@ export async function getLoginActivity(): Promise<LoginActivity> {
       lock: lockOf(n(r.fails_short), n(r.fails_day), 'ip'),
     })),
   };
+}
+
+/**
+ * 最近成功登入。兩個來源合併、去掉重複：
+ * - login_attempts 裡的成功紀錄（每次登入都會記，保留 7 天）
+ * - sessions（登入時建立，含裝置資訊；2026/11/3～11/6 這段期間登入成功沒有寫進 login_attempts，靠它補上）
+ * 同一個帳號從同一個 IP、前後一分鐘內的兩筆視為同一次登入。
+ */
+async function getRecentLogins(since: Date): Promise<LoginSuccess[]> {
+  const rows = await db()`
+    with ok as (
+      select a.at, a.username, a.ip from app.login_attempts a
+      where a.success and a.at > ${since} and a.username <> '__setup__'
+    ),
+    sess as (
+      select s.created_at as at, u.username, s.ip, s.user_agent
+      from app.sessions s join app.users u on u.id = s.user_id
+      where s.created_at > ${since}
+    ),
+    merged as (
+      select ok.at, ok.username, ok.ip,
+             (select s.user_agent from sess s
+              where s.username = ok.username and s.ip = ok.ip
+                and s.at between ok.at - interval '1 minute' and ok.at + interval '1 minute'
+              order by abs(extract(epoch from s.at - ok.at)) limit 1) as user_agent
+      from ok
+      union all
+      select s.at, s.username, s.ip, s.user_agent from sess s
+      where not exists (
+        select 1 from ok
+        where ok.username = s.username and ok.ip = s.ip
+          and ok.at between s.at - interval '1 minute' and s.at + interval '1 minute')
+    ),
+    botlike as (
+      select ip from app.login_attempts
+      where not success and at > ${since}
+      group by ip having count(distinct username) >= 3
+    )
+    select m.at, m.username, u.display_name, m.ip, m.user_agent,
+           coalesce(m.ip in (select ip from botlike), false) as suspicious
+    from merged m left join app.users u on u.username = m.username
+    order by m.at desc
+    limit 100`;
+  return rows.map((r) => ({
+    at: iso(r.at),
+    username: r.username,
+    displayName: r.display_name ?? null,
+    ip: r.ip ?? null,
+    userAgent: r.user_agent || null,
+    suspicious: Boolean(r.suspicious),
+  }));
 }
 
 /** 後台解鎖：清掉某個帳號或某個 IP 的失敗紀錄，回傳清掉幾筆 */

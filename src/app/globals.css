@@ -406,6 +406,7 @@ dialog.drawer .dialog-inner { min-height: 100%; }
   .table td:last-child { flex-basis: 100%; }
   .table td:nth-child(5)::before { content: '最後登入 '; }
   .table-labeled td[data-label]::before { content: attr(data-label) ' '; color: var(--ink-3); }
+  .table-labeled td:not([data-label])::before { content: none; }
 }
 
 @media (pointer: coarse) {

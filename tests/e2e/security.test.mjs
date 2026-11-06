@@ -405,3 +405,24 @@ test('a successful login only clears failures from the same network', { skip: !s
                          where username = ${u} and not success group by ip order by ip`;
   assert.deepEqual(left.map((r) => [r.ip, r.n]), [['198.51.100.40', 3]], 'own typo cleared, the other network still counts');
 });
+
+test('admins see recent successful logins with IP, device and a warning for bot-like IPs', { skip: !sql }, async () => {
+  const u = 'ok-' + Date.now();
+  const created = await admin.req('/api/users', { method: 'POST', body: { username: u, displayName: '登入測試', role: 'editor' } });
+  const pw = created.json.tempPassword;
+  const app = (ip) => new Client().req('/api/auth/login', { method: 'POST', body: { username: u, password: pw }, headers: { 'x-real-ip': ip, 'user-agent': 'ContactBookAndroid/9.9.9' } });
+
+  assert.equal((await app('198.51.100.50')).status, 200);
+  // 從一個試過很多帳號的 IP 登入成功 → 要被標出來
+  await sql`insert into app.login_attempts (username, ip, success, at)
+            select 'guess-' || g, '198.51.100.51', false, ${hoursAgo(1)} from generate_series(1, 3) g`;
+  assert.equal((await app('198.51.100.51')).status, 200);
+
+  const logins = (await admin.req('/api/login-activity')).json.logins.filter((g) => g.username === u);
+  const at50 = logins.filter((g) => g.ip === '198.51.100.50');
+  assert.equal(at50.length, 1, 'one login shows once (attempt record and session are merged)');
+  assert.equal(at50[0].userAgent, 'ContactBookAndroid/9.9.9');
+  assert.equal(at50[0].displayName, '登入測試');
+  assert.equal(at50[0].suspicious, false);
+  assert.equal(logins.find((g) => g.ip === '198.51.100.51')?.suspicious, true);
+});

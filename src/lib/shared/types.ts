@@ -144,7 +144,20 @@ export type LoginActivitySummary = {
   blockedIps: number;
 };
 
+export type LoginSuccess = {
+  at: string;
+  username: string;
+  displayName: string | null;
+  ip: string | null;
+  /** 登入時的 User-Agent（瀏覽器或 App 自報的裝置），不知道時是 null */
+  userAgent: string | null;
+  /** 這個 IP 最近 7 天也試過 3 個以上不同帳號且失敗（像機器人），值得注意 */
+  suspicious: boolean;
+};
+
 export type LoginActivity = LoginActivitySummary & {
+  /** 最近 7 天成功登入（新的在前） */
+  logins: LoginSuccess[];
   accounts: LoginActivityAccount[];
   ips: LoginActivityIp[];
 };

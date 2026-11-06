@@ -13,8 +13,8 @@ export const POST = handle(async (req: NextRequest) => {
   const ip = clientIp(req);
 
   // 防止有人拿到已登入的裝置後，用這個 API 暴力猜目前密碼（和登入共用原子限流，修正同一個 F1 競態）
-  const gate = await guardedAttempt(user.username, ip, async (tx) => {
-    const hash = await getPasswordHash(user.id, tx);
+  const gate = await guardedAttempt(user.username, ip, async () => {
+    const hash = await getPasswordHash(user.id);
     const success = !!hash && (await verifyPassword(currentPassword, hash));
     return { success, value: null };
   });

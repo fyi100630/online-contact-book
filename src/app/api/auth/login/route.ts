@@ -10,10 +10,10 @@ export const POST = handle(async (req: NextRequest) => {
   const { username, password } = await readJson(req, loginSchema);
   const ip = clientIp(req);
 
-  // 限流、記錄失敗、scrypt 驗證全部在同一個交易、同一把 advisory lock 內完成，
+  // 先在鎖內把這次嘗試登記為失敗，再驗證密碼：
   // 並發請求無法在失敗被記錄前一起闖過限流（修正 F1 競態）。
-  const gate = await guardedAttempt(username, ip, async (tx) => {
-    const user = await findUserForLogin(username, tx);
+  const gate = await guardedAttempt(username, ip, async () => {
+    const user = await findUserForLogin(username);
     let valid = false;
     if (user) {
       valid = await verifyPassword(password, user.passwordHash);

@@ -31,21 +31,24 @@ export async function recordLoginAttempt(username: string, ip: string, success: 
 export type GuardResult<T> = { blocked: true } | { blocked: false; success: boolean; value: T };
 
 /**
- * 原子限流：把同帳號、同 IP 的所有嘗試用 advisory lock 排成一列，
- * 「先把這次登記為失敗，再做昂貴的驗證（scrypt）」，驗證成功才清掉這帳號的失敗紀錄。
+ * 原子限流：「先把這次登記為失敗，再做昂貴的驗證（scrypt）」，驗證成功才清掉這帳號的失敗紀錄。
  *
- * 這樣就關掉了「先檢查次數、後記錄失敗」之間的競態窗口：
- * 以前同時送 N 個請求會在任何失敗被寫入前全部通過檢查，鎖定形同虛設；
- * 現在每個請求都得先拿到鎖、看到前一次已登記的失敗，第 6 個之後一律 429。
+ * 關掉「先檢查次數、後記錄失敗」之間的競態窗口：數次數＋先登記這兩步在同一個短交易裡、
+ * 持有同帳號與同 IP 的 advisory lock 完成，所以同時送來的請求一定會看到彼此已登記的嘗試，
+ * 第 6 個之後一律 429。
+ *
+ * 鎖只包住這兩個很快的查詢；scrypt 在交易結束、鎖和連線都放掉之後才做。
+ * 不然共用同一個對外 IP 的人（例如整間學校）會被排成一列、每人多等一次 scrypt，
+ * 驗證期間還一直佔著連線池。
  */
 export async function guardedAttempt<T>(
   username: string,
   ip: string,
-  verify: (tx: Tx) => Promise<{ success: boolean; value: T }>,
+  verify: () => Promise<{ success: boolean; value: T }>,
 ): Promise<GuardResult<T>> {
   const since = new Date(Date.now() - WINDOW_MS);
-  const result = await db().begin(async (tx) => {
-    // 1) 序列化：同一帳號、同一 IP 的並發請求在這裡排隊（交易結束自動釋放）
+  const reserved = await db().begin(async (tx: Tx) => {
+    // 1) 同一帳號、同一 IP 的請求在這裡排隊，但只排「數＋登記」這一小段（交易結束自動釋放）
     await tx`select pg_advisory_xact_lock(hashtextextended(${username}, 0))`;
     await tx`select pg_advisory_xact_lock(hashtextextended(${ip}, 1))`;
 
@@ -57,20 +60,21 @@ export async function guardedAttempt<T>(
       from app.login_attempts
       where at > ${since} and not success and (username = ${username} or ip = ${ip})`;
     if (Number(c?.by_user ?? 0) >= MAX_FAILS_PER_ACCOUNT || Number(c?.by_ip ?? 0) >= MAX_FAILS_PER_IP) {
-      return { blocked: true } as GuardResult<T>;
+      return false;
     }
 
     // 3) 先把這次「當成失敗」寫進去——之後驗證成功再清掉
     await tx`insert into app.login_attempts (username, ip, success) values (${username.slice(0, 64)}, ${ip}, false)`;
-
-    // 4) 現在才做昂貴的驗證（放在鎖內，讓同帳號的嘗試真正一個一個來）
-    const { success, value } = await verify(tx);
-
-    if (success) {
-      await tx`delete from app.login_attempts where username = ${username} and not success`;
-      if (Math.random() < 0.02) await tx`delete from app.login_attempts where at < now() - interval '7 days'`;
-    }
-    return { blocked: false, success, value } as GuardResult<T>;
+    return true;
   });
-  return result as GuardResult<T>;
+  if (!reserved) return { blocked: true };
+
+  // 4) 鎖和連線都放掉了，才做昂貴的驗證
+  const { success, value } = await verify();
+
+  if (success) {
+    await db()`delete from app.login_attempts where username = ${username} and not success`;
+    if (Math.random() < 0.02) await db()`delete from app.login_attempts where at < now() - interval '7 days'`;
+  }
+  return { blocked: false, success, value };
 }

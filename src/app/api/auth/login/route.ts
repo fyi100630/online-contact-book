@@ -25,6 +25,7 @@ export const POST = handle(async (req: NextRequest) => {
     return { success, value: success ? user!.id : null };
   });
 
+  if (gate.blocked === 'day') return fail(429, '今天登入失敗太多次，已暫停登入。請找系統管理員解鎖。', 'locked');
   if (gate.blocked) return fail(429, '登入失敗次數太多，請 15 分鐘後再試', 'rate_limited');
   if (!gate.success || !gate.value) return fail(401, '帳號或密碼錯誤', 'invalid_credentials');
 

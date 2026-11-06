@@ -117,3 +117,9 @@ export const legacyImportSchema = z.object({
 export function firstError(err: z.ZodError): string {
   return err.issues[0]?.message ?? '資料格式不正確';
 }
+
+/** 管理員解除登入鎖定：指定帳號或 IP 其中一個 */
+export const unlockSchema = z.union([
+  z.object({ username: z.string().trim().toLowerCase().min(1).max(64) }).strict(),
+  z.object({ ip: z.string().trim().min(1).max(64) }).strict(),
+]);

@@ -1,7 +1,8 @@
 // API 安全測試：對真正啟動的伺服器 + 資料庫發請求。
 // 用法：先 next start，然後 BASE=http://localhost:3100 SETUP_TOKEN=... node --test tests/e2e/security.test.mjs
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
+import postgres from 'postgres';
 
 const BASE = process.env.BASE ?? 'http://localhost:3100';
 const ORIGIN = new URL(BASE).origin;
@@ -333,4 +334,74 @@ test('security headers on pages and API', async () => {
   assert.match(api.headers.get('cache-control'), /no-store/);
   const page2 = await fetch(BASE + '/');
   assert.notEqual(page2.headers.get('content-security-policy'), csp, 'nonce must change per request');
+});
+
+// ---- 24 小時鎖定與後台「登入紀錄」----
+// 要有「幾個小時前」的失敗紀錄，HTTP 做不出來，所以直接用網站的資料庫帳號寫入（CI 有 DATABASE_URL）。
+const DB_URL = process.env.DATABASE_URL;
+const sql = DB_URL ? postgres(DB_URL, { ssl: process.env.DATABASE_SSL === 'disable' ? false : 'require', max: 1, onnotice: () => {} }) : null;
+after(() => sql?.end());
+const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000);
+const loginFrom = (ip, username, password) =>
+  new Client().req('/api/auth/login', { method: 'POST', body: { username, password }, headers: { 'x-real-ip': ip } });
+
+test('login activity is admin-only', async () => {
+  assert.equal((await anon.req('/api/login-activity')).status, 401);
+  assert.equal((await anon.req('/api/login-activity?summary=1')).status, 401);
+  assert.equal((await anon.req('/api/login-activity/unlock', { method: 'POST', body: { ip: '1.2.3.4' } })).status, 401);
+});
+
+test('24h lock: 20 failures in a day lock an account until an admin unlocks it', { skip: !sql }, async () => {
+  const u = 'daylock-' + Date.now();
+  await sql`insert into app.login_attempts (username, ip, success, at)
+            select ${u}, '198.51.100.20', false, ${hoursAgo(2)} from generate_series(1, 20)`;
+  const locked = await loginFrom('198.51.100.21', u, 'x');
+  assert.equal(locked.status, 429);
+  assert.equal(locked.json.code, 'locked', 'a slow bot spread over hours is still stopped');
+
+  const act = await admin.req('/api/login-activity');
+  assert.equal(act.status, 200);
+  const row = act.json.accounts.find((a) => a.username === u);
+  assert.equal(row.lock, 'day');
+  assert.equal(row.exists, false);
+  assert.equal(row.fails24h, 20);
+  assert.ok((await admin.req('/api/login-activity?summary=1')).json.lockedAccounts >= 1);
+
+  const un = await admin.req('/api/login-activity/unlock', { method: 'POST', body: { username: u } });
+  assert.equal(un.status, 200);
+  assert.equal(un.json.cleared, 20);
+  assert.equal((await loginFrom('198.51.100.21', u, 'x')).status, 401, 'unlocked: back to a normal wrong-password answer');
+});
+
+test('24h IP block: 100 failures from one IP block it until an admin unlocks it', { skip: !sql }, async () => {
+  const ip = '198.51.100.30';
+  await sql`insert into app.login_attempts (username, ip, success, at)
+            select 'bot-' || g, ${ip}, false, ${hoursAgo(3)} from generate_series(1, 100) g`;
+  const blocked = await loginFrom(ip, 'someone-' + Date.now(), 'x');
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.json.code, 'locked');
+
+  const row = (await admin.req('/api/login-activity')).json.ips.find((r) => r.ip === ip);
+  assert.equal(row.lock, 'day');
+  assert.equal(row.accounts, 100);
+
+  const un = await admin.req('/api/login-activity/unlock', { method: 'POST', body: { ip } });
+  assert.equal(un.json.cleared, 100);
+  assert.equal((await loginFrom(ip, 'someone-' + Date.now(), 'x')).status, 401);
+});
+
+test('a successful login only clears failures from the same network', { skip: !sql }, async () => {
+  const u = 'keep-' + Date.now();
+  const created = await admin.req('/api/users', { method: 'POST', body: { username: u, displayName: '測試', role: 'editor' } });
+  assert.equal(created.status, 201);
+  // 別的地方（例如機器人）一小時前對這個帳號試了 3 次
+  await sql`insert into app.login_attempts (username, ip, success, at)
+            select ${u}, '198.51.100.40', false, ${hoursAgo(1)} from generate_series(1, 3)`;
+  // 本人自己打錯一次，然後打對
+  assert.equal((await loginFrom('198.51.100.41', u, 'wrong')).status, 401);
+  assert.equal((await loginFrom('198.51.100.41', u, created.json.tempPassword)).status, 200);
+
+  const left = await sql`select ip, count(*)::int as n from app.login_attempts
+                         where username = ${u} and not success group by ip order by ip`;
+  assert.deepEqual(left.map((r) => [r.ip, r.n]), [['198.51.100.40', 3]], 'own typo cleared, the other network still counts');
 });

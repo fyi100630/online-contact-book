@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/client/api';
-import { ROLE_LABEL, type SessionUser } from '@/lib/shared/types';
+import { ROLE_LABEL, type LoginActivitySummary, type SessionUser } from '@/lib/shared/types';
 import {
-  IconBook, IconDatabase, IconExternal, IconGrid, IconHistory, IconList, IconLogout, IconMegaphone, IconMenu, IconPhone, IconTrash, IconUser, IconUsers,
+  IconAlert, IconBook, IconDatabase, IconExternal, IconGrid, IconHistory, IconList, IconLogout, IconMegaphone, IconMenu, IconPhone, IconShield, IconTrash, IconUser, IconUsers,
 } from '../icons';
+
+/** 24 小時內登入失敗超過這個數字，後台首頁就提醒管理員 */
+const LOGIN_FAIL_WARN = 30;
 
 type NavItem = { href: string; label: string; icon: ReactNode; admin?: boolean };
 const NAV: NavItem[] = [
@@ -19,6 +22,7 @@ const NAV: NavItem[] = [
   { href: '/manage/trash', label: '垃圾桶', icon: <IconTrash />, admin: true },
   { href: '/manage/data', label: '備份與匯入', icon: <IconDatabase />, admin: true },
   { href: '/manage/app', label: 'App 安裝統計', icon: <IconPhone />, admin: true },
+  { href: '/manage/security', label: '登入紀錄', icon: <IconShield />, admin: true },
 ];
 
 /** 放在「內容」區的管理員項目 */
@@ -39,6 +43,22 @@ export function Shell({ user, classTitle, children }: { user: SessionUser; class
 
   const locked = user.mustChangePassword;
   const items = NAV.filter((n) => !n.admin || user.role === 'admin');
+
+  // 管理員進後台首頁時，看一下最近 24 小時有沒有異常的登入失敗
+  const [loginWarn, setLoginWarn] = useState<LoginActivitySummary | null>(null);
+  const isAdminHome = user.role === 'admin' && !locked && pathname === '/manage';
+  useEffect(() => {
+    if (!isAdminHome) return;
+    let alive = true;
+    api<LoginActivitySummary>('/api/login-activity?summary=1')
+      .then((s) => {
+        if (alive) setLoginWarn(s.lockedAccounts > 0 || s.blockedIps > 0 || s.fails24h >= LOGIN_FAIL_WARN ? s : null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isAdminHome]);
   const link = (n: NavItem) => (
     <Link key={n.href} href={n.href} className="nav-link" aria-current={pathname === n.href ? 'page' : undefined} onClick={() => setOpen(false)}>
       {n.icon} {n.label}
@@ -79,7 +99,19 @@ export function Shell({ user, classTitle, children }: { user: SessionUser; class
           <button className="nav-link btn-ghost" onClick={logout}><IconLogout /> 登出</button>
         </div>
       </aside>
-      <main className="main">{children}</main>
+      <main className="main">
+        {isAdminHome && loginWarn && (
+          <div className="alert alert-warn alert-banner" role="status">
+            <IconAlert />
+            <span>
+              過去 24 小時有 {loginWarn.fails24h} 次登入失敗
+              {loginWarn.lockedAccounts + loginWarn.blockedIps > 0 && `，${loginWarn.lockedAccounts} 個帳號、${loginWarn.blockedIps} 個 IP 被鎖定`}
+              。<Link href="/manage/security">查看登入紀錄</Link>
+            </span>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

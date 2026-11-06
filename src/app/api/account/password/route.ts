@@ -18,6 +18,7 @@ export const POST = handle(async (req: NextRequest) => {
     const success = !!hash && (await verifyPassword(currentPassword, hash));
     return { success, value: null };
   });
+  if (gate.blocked === 'day') return fail(429, '今天密碼輸入錯誤太多次，已暫停。請找系統管理員解鎖。', 'locked');
   if (gate.blocked) return fail(429, '嘗試次數太多，請 15 分鐘後再試', 'rate_limited');
   if (!gate.success) return fail(400, '目前的密碼不正確', 'wrong_password');
 

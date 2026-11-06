@@ -98,3 +98,53 @@ export type AuditRow = {
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
 };
+
+/** 登入限流的門檻（伺服器判斷與後台說明共用同一份數字） */
+export const LOGIN_LIMITS = {
+  /** 同一帳號 15 分鐘內錯幾次就暫停 15 分鐘 */
+  accountShort: 5,
+  /** 同一個 IP 15 分鐘內錯幾次就暫停 15 分鐘 */
+  ipShort: 20,
+  /** 同一帳號 24 小時內錯幾次就暫停到失敗紀錄滿 24 小時（或管理員解鎖） */
+  accountDay: 20,
+  /** 同一個 IP 24 小時內錯幾次就暫停到失敗紀錄滿 24 小時（或管理員解鎖） */
+  ipDay: 100,
+} as const;
+
+/** 目前的鎖定狀態：day＝24 小時鎖定、short＝15 分鐘鎖定 */
+export type LockState = 'day' | 'short' | null;
+
+export type LoginActivityAccount = {
+  username: string;
+  /** 這個帳號名稱是否真的存在（機器人常亂猜不存在的帳號） */
+  exists: boolean;
+  fails7d: number;
+  fails24h: number;
+  /** 從幾個不同的 IP 試過 */
+  ips: number;
+  lastAt: string;
+  lock: LockState;
+};
+
+export type LoginActivityIp = {
+  ip: string;
+  fails7d: number;
+  fails24h: number;
+  /** 試過幾個不同的帳號 */
+  accounts: number;
+  lastAt: string;
+  lock: LockState;
+};
+
+export type LoginActivitySummary = {
+  fails24h: number;
+  accounts24h: number;
+  ips24h: number;
+  lockedAccounts: number;
+  blockedIps: number;
+};
+
+export type LoginActivity = LoginActivitySummary & {
+  accounts: LoginActivityAccount[];
+  ips: LoginActivityIp[];
+};
